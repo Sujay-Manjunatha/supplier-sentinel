@@ -13,7 +13,6 @@ interface Gap {
   aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
   reasoning: string;
   risksIfAccepted: string;
-  risksIfRejected: string;
 }
 
 serve(async (req) => {
@@ -62,8 +61,7 @@ AUSGABEFORMAT für jeden Gap:
 - severity: KRITISCH | MITTEL | GERING
 - aiRecommendation: AKZEPTIEREN | ABLEHNEN | PRÜFEN
 - reasoning: Detaillierte Begründung deiner Empfehlung (2-4 Sätze)
-- risksIfAccepted: Konkrete Risiken bei Akzeptanz (rechtlich, operativ, finanziell)
-- risksIfRejected: Konkrete Risiken bei Ablehnung (Geschäftsbeziehung, Wettbewerbsnachteile)
+- risksIfAccepted: Konkrete Risiken bei Akzeptanz (rechtlich, operativ, finanziell). Wenn es keine nennenswerten Risiken gibt, schreibe "Keine wesentlichen Risiken identifiziert."
 
 WICHTIG: 
 - Alle Antworten auf Deutsch

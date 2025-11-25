@@ -4,17 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Shield, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import BaselineSetup from "@/components/dashboard/BaselineSetup";
 import ComparisonUpload from "@/components/dashboard/ComparisonUpload";
 import AnalysisResults from "@/components/dashboard/AnalysisResults";
 import AcceptedRequirements from "@/components/dashboard/AcceptedRequirements";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MyProcesses from "@/components/dashboard/MyProcesses";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("baseline");
+  const [activeSection, setActiveSection] = useState("baseline");
   const [baselineId, setBaselineId] = useState<string | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [comparisonDocumentId, setComparisonDocumentId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -59,86 +62,81 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
-      title: "Signed out",
-      description: "You've been successfully signed out.",
+      title: "Abgemeldet",
+      description: "Sie wurden erfolgreich abgemeldet.",
     });
     navigate("/");
   };
 
   const handleBaselineCreated = (id: string) => {
     setBaselineId(id);
-    setActiveTab("compare");
+    setActiveSection("new-process");
     toast({
-      title: "Baseline saved",
-      description: "Your baseline document has been saved successfully.",
+      title: "Kodex gespeichert",
+      description: "Ihr Kodex wurde erfolgreich gespeichert.",
     });
   };
 
-  const handleAnalysisComplete = (id: string) => {
+  const handleAnalysisComplete = (id: string, compDocId: string) => {
     setAnalysisId(id);
-    setActiveTab("results");
+    setComparisonDocumentId(compDocId);
+    setActiveSection("results");
   };
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Supplier Code GAP Analysis</h1>
-          </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-primary/5 to-background">
+        <AppSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="border-b bg-card/50 backdrop-blur-sm">
+            <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Shield className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold text-foreground">Supplier Code GAP Analysis</h1>
+              </div>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Abmelden
+              </Button>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 container mx-auto px-4 py-8">
+            {activeSection === "baseline" && (
+              <BaselineSetup 
+                userId={user.id} 
+                onBaselineCreated={handleBaselineCreated}
+                existingBaselineId={baselineId}
+              />
+            )}
+
+            {activeSection === "accepted" && <AcceptedRequirements />}
+
+            {activeSection === "processes" && <MyProcesses />}
+
+            {activeSection === "new-process" && (
+              <ComparisonUpload
+                userId={user.id}
+                baselineId={baselineId}
+                onAnalysisComplete={handleAnalysisComplete}
+              />
+            )}
+
+            {activeSection === "results" && (
+              <AnalysisResults 
+                analysisId={analysisId} 
+                comparisonDocumentId={comparisonDocumentId}
+              />
+            )}
+          </main>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4">
-            <TabsTrigger value="baseline">Mein Kodex</TabsTrigger>
-            <TabsTrigger value="compare" disabled={!baselineId}>
-              Vergleichen
-            </TabsTrigger>
-            <TabsTrigger value="results" disabled={!analysisId}>
-              Ergebnisse
-            </TabsTrigger>
-            <TabsTrigger value="accepted">
-              Akzeptierte Punkte
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="baseline" className="space-y-4">
-            <BaselineSetup 
-              userId={user.id} 
-              onBaselineCreated={handleBaselineCreated}
-              existingBaselineId={baselineId}
-            />
-          </TabsContent>
-
-          <TabsContent value="compare" className="space-y-4">
-            <ComparisonUpload
-              userId={user.id}
-              baselineId={baselineId}
-              onAnalysisComplete={handleAnalysisComplete}
-            />
-          </TabsContent>
-
-          <TabsContent value="results" className="space-y-4">
-            <AnalysisResults analysisId={analysisId} />
-          </TabsContent>
-
-          <TabsContent value="accepted" className="space-y-4">
-            <AcceptedRequirements />
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 

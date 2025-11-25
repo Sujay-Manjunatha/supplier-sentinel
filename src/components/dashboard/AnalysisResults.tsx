@@ -12,19 +12,21 @@ interface Gap {
   aiRecommendation: "AKZEPTIEREN" | "ABLEHNEN" | "PRÜFEN";
   reasoning: string;
   risksIfAccepted: string;
-  risksIfRejected: string;
 }
 
 interface AnalysisResultsProps {
   analysisId: string | null;
+  comparisonDocumentId?: string | null;
 }
 
-const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
+const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsProps) => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<"initial" | "review" | "summary">("initial");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [decisions, setDecisions] = useState<Record<number, 'accept' | 'reject'>>({});
+  const [skippedIndices, setSkippedIndices] = useState<number[]>([]);
+  const [sortedGaps, setSortedGaps] = useState<Gap[]>([]);
 
   useEffect(() => {
     if (analysisId) {
@@ -56,8 +58,6 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
           acceptedReqs?.map(r => r.requirement_hash) || []
         );
 
-        console.log("Accepted requirement hashes:", Array.from(acceptedHashes));
-
         // Helper function to hash text
         const hashText = async (text: string): Promise<string> => {
           const encoder = new TextEncoder();
@@ -69,38 +69,44 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
 
         // Filter out gaps that match accepted requirements
         const gaps = (data.gaps as any[]) || [];
-        console.log("Total gaps before filtering:", gaps.length);
         
         const filteredGaps = [];
         for (const gap of gaps) {
           const gapHash = await hashText(gap.customerText);
           const isAccepted = acceptedHashes.has(gapHash);
-          if (isAccepted) {
-            console.log("Filtering out accepted gap:", {
-              section: gap.section,
-              hash: gapHash,
-              text: gap.customerText.substring(0, 50) + "..."
-            });
-          } else {
+          if (!isAccepted) {
             filteredGaps.push(gap);
           }
         }
-        
-        console.log("Gaps after filtering:", filteredGaps.length);
 
-        // Update the analysis data with filtered gaps
+        // Sort gaps by severity: KRITISCH first, then MITTEL, then GERING
+        const sorted = filteredGaps.sort((a: any, b: any) => {
+          const order = { 'KRITISCH': 0, 'MITTEL': 1, 'GERING': 2 };
+          return order[a.severity] - order[b.severity];
+        });
+
+        setSortedGaps(sorted as Gap[]);
+
+        // Update the analysis data with filtered and sorted gaps
         setAnalysis({
           ...data,
-          gaps: filteredGaps,
-          total_gaps: filteredGaps.length,
+          gaps: sorted,
+          total_gaps: sorted.length,
         });
       } else {
-        setAnalysis(data);
+        const gaps = (data.gaps as any[]) || [];
+        const sorted = gaps.sort((a: any, b: any) => {
+          const order = { 'KRITISCH': 0, 'MITTEL': 1, 'GERING': 2 };
+          return order[a.severity] - order[b.severity];
+        });
+        setSortedGaps(sorted as Gap[]);
+        setAnalysis({ ...data, gaps: sorted });
       }
       
       setPhase("initial");
       setCurrentIndex(0);
       setDecisions({});
+      setSkippedIndices([]);
     } catch (error) {
       console.error("Error fetching analysis:", error);
     } finally {
@@ -112,14 +118,25 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
     setPhase("review");
     setCurrentIndex(0);
     setDecisions({});
+    setSkippedIndices([]);
   };
 
   const handleAccept = (index: number) => {
     setDecisions((prev) => ({ ...prev, [index]: 'accept' }));
+    // Remove from skipped if it was there
+    setSkippedIndices((prev) => prev.filter((i) => i !== index));
   };
 
   const handleReject = (index: number) => {
     setDecisions((prev) => ({ ...prev, [index]: 'reject' }));
+    // Remove from skipped if it was there
+    setSkippedIndices((prev) => prev.filter((i) => i !== index));
+  };
+
+  const handleSkip = (index: number) => {
+    if (!skippedIndices.includes(index)) {
+      setSkippedIndices((prev) => [...prev, index]);
+    }
   };
 
   const handlePrevious = () => {
@@ -129,19 +146,32 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
   };
 
   const handleNext = () => {
-    if (currentIndex < gaps.length - 1) {
+    if (currentIndex < sortedGaps.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
 
+  const handleJumpTo = (index: number) => {
+    setCurrentIndex(index);
+  };
+
   const handleComplete = () => {
-    setPhase("summary");
+    // Check if there are skipped questions that need to be answered
+    const unansweredSkipped = skippedIndices.filter((i) => decisions[i] === undefined);
+    
+    if (unansweredSkipped.length > 0 && Object.keys(decisions).length < sortedGaps.length) {
+      // Move to first unanswered skipped question
+      setCurrentIndex(unansweredSkipped[0]);
+    } else {
+      setPhase("summary");
+    }
   };
 
   const handleRestart = () => {
     setPhase("review");
     setCurrentIndex(0);
     setDecisions({});
+    setSkippedIndices([]);
   };
 
   if (loading) {
@@ -160,7 +190,7 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
     );
   }
 
-  const gaps: Gap[] = analysis.gaps || [];
+  const gaps: Gap[] = sortedGaps;
 
   if (gaps.length === 0) {
     return (
@@ -213,10 +243,10 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
                   </div>
                 </Card>
 
-                <Card className="p-4 border-warning/20 bg-warning/5">
+                <Card className="p-4 border-orange-500/20 bg-orange-500/5">
                   <div className="space-y-2 text-center">
                     <p className="text-xs font-medium text-muted-foreground">Mittel</p>
-                    <p className="text-3xl font-bold text-warning">{mediumGaps}</p>
+                    <p className="text-3xl font-bold text-orange-500">{mediumGaps}</p>
                   </div>
                 </Card>
 
@@ -255,10 +285,13 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
         gaps={gaps}
         currentIndex={currentIndex}
         decisions={decisions}
+        skippedIndices={skippedIndices}
         onAccept={handleAccept}
         onReject={handleReject}
+        onSkip={handleSkip}
         onPrevious={handlePrevious}
         onNext={handleNext}
+        onJumpTo={handleJumpTo}
         onComplete={handleComplete}
       />
     );
@@ -270,6 +303,8 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
       gaps={gaps}
       decisions={decisions}
       overallCompliance={analysis.overall_compliance_percentage}
+      analysisId={analysisId}
+      comparisonDocumentId={comparisonDocumentId || analysis.comparison_document_id}
       onRestart={handleRestart}
     />
   );

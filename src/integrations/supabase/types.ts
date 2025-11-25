@@ -17,6 +17,7 @@ export type Database = {
       accepted_requirements: {
         Row: {
           accepted_at: string
+          category: string | null
           id: string
           notes: string | null
           requirement_hash: string
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string
+          category?: string | null
           id?: string
           notes?: string | null
           requirement_hash: string
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string
+          category?: string | null
           id?: string
           notes?: string | null
           requirement_hash?: string
@@ -108,6 +111,65 @@ export type Database = {
             columns: ["baseline_document_id"]
             isOneToOne: false
             referencedRelation: "baseline_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      completed_evaluations: {
+        Row: {
+          comparison_document_id: string
+          completed_at: string
+          created_at: string
+          critical_gaps: number
+          customer_name: string
+          decisions: Json
+          email_template: string | null
+          gaps: Json
+          id: string
+          low_gaps: number
+          medium_gaps: number
+          overall_compliance: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          comparison_document_id: string
+          completed_at?: string
+          created_at?: string
+          critical_gaps?: number
+          customer_name: string
+          decisions?: Json
+          email_template?: string | null
+          gaps?: Json
+          id?: string
+          low_gaps?: number
+          medium_gaps?: number
+          overall_compliance: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          comparison_document_id?: string
+          completed_at?: string
+          created_at?: string
+          critical_gaps?: number
+          customer_name?: string
+          decisions?: Json
+          email_template?: string | null
+          gaps?: Json
+          id?: string
+          low_gaps?: number
+          medium_gaps?: number
+          overall_compliance?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "completed_evaluations_comparison_document_id_fkey"
+            columns: ["comparison_document_id"]
+            isOneToOne: false
+            referencedRelation: "comparison_documents"
             referencedColumns: ["id"]
           },
         ]

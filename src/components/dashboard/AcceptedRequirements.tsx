@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, FileText } from "lucide-react";
+import { Trash2, FileText, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface AcceptedRequirement {
   id: string;
@@ -22,6 +23,7 @@ interface AcceptedRequirement {
   section: string;
   accepted_at: string;
   notes: string | null;
+  category: string;
 }
 
 const AcceptedRequirements = () => {
@@ -44,6 +46,7 @@ const AcceptedRequirements = () => {
       .from("accepted_requirements")
       .select("*")
       .eq("user_id", user.id)
+      .order("category", { ascending: true })
       .order("accepted_at", { ascending: false });
 
     if (error) {
@@ -84,6 +87,18 @@ const AcceptedRequirements = () => {
     setDeleteId(null);
   };
 
+  const groupByCategory = () => {
+    const grouped: Record<string, AcceptedRequirement[]> = {};
+    requirements.forEach((req) => {
+      const category = req.category || 'Allgemein';
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(req);
+    });
+    return grouped;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -92,14 +107,21 @@ const AcceptedRequirements = () => {
     );
   }
 
+  const groupedRequirements = groupByCategory();
+  const categories = Object.keys(groupedRequirements).sort();
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <Card className="p-6">
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-foreground">Manuell akzeptierte Punkte</h2>
+          <h2 className="text-2xl font-bold text-foreground">Dauerhaft akzeptierte Punkte</h2>
           <p className="text-muted-foreground">
             Diese Anforderungen haben Sie als dauerhaft akzeptiert markiert. Sie werden in zukünftigen Analysen automatisch als akzeptiert behandelt.
           </p>
+          <div className="flex items-center gap-2 mt-4">
+            <Badge variant="secondary">{requirements.length} Anforderungen</Badge>
+            <Badge variant="outline">{categories.length} Kategorien</Badge>
+          </div>
         </div>
       </Card>
 
@@ -114,57 +136,64 @@ const AcceptedRequirements = () => {
                 Keine dauerhaft akzeptierten Punkte
               </h4>
               <p className="text-muted-foreground">
-                Sie haben noch keine Anforderungen als dauerhaft akzeptiert markiert. Diese erscheinen hier, wenn Sie in der Bewertung "Für die Zukunft immer akzeptieren" auswählen.
+                Sie haben noch keine Anforderungen als dauerhaft akzeptiert markiert. Diese erscheinen hier, wenn Sie in der Bewertung "Dauerhaft akzeptieren" auswählen.
               </p>
             </div>
           </div>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {requirements.map((req) => (
-            <Card key={req.id} className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h4 className="text-xl font-semibold text-foreground">{req.section}</h4>
-                      <Badge variant="secondary">Dauerhaft akzeptiert</Badge>
+        <Accordion type="multiple" className="space-y-4">
+          {categories.map((category) => (
+            <AccordionItem key={category} value={category} className="border rounded-lg">
+              <Card>
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold">{category}</h3>
+                      <Badge variant="secondary">
+                        {groupedRequirements[category].length}
+                      </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Akzeptiert am {new Date(req.accepted_at).toLocaleDateString("de-DE", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setDeleteId(req.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent className="pt-0 space-y-3">
+                    {groupedRequirements[category].map((req) => (
+                      <Card key={req.id} className="p-4 bg-muted/30">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 space-y-1">
+                              <h4 className="font-medium text-sm">{req.section}</h4>
+                              <p className="text-xs text-muted-foreground">
+                                Akzeptiert am {new Date(req.accepted_at).toLocaleDateString("de-DE", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteId(req.id)}
+                              className="text-destructive hover:text-destructive h-8 w-8"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <FileText className="h-4 w-4" />
-                    <span>Anforderung</span>
-                  </div>
-                  <Card className="p-4 bg-muted/50">
-                    <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                      {req.requirement_text}
-                    </p>
-                  </Card>
-                </div>
-              </div>
-            </Card>
+                          <div className="text-sm text-foreground bg-background p-3 rounded-md border">
+                            {req.requirement_text}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       )}
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
