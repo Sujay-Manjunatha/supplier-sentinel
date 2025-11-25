@@ -174,19 +174,6 @@ const GapReviewWizard = ({
             </Card>
           </div>
 
-          {/* Baseline Reference */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-              <FileText className="h-4 w-4" />
-              <span>Ihr aktueller Kodex</span>
-            </div>
-            <Card className="p-5 bg-primary/5 border-primary/20">
-              <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                {currentGap.baselineText}
-              </p>
-            </Card>
-          </div>
-
           {/* Recommendation */}
           <div className="space-y-3">
             <p className="text-sm font-semibold text-muted-foreground">Empfehlung</p>

@@ -55,6 +55,8 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
           acceptedReqs?.map(r => r.requirement_hash) || []
         );
 
+        console.log("Accepted requirement hashes:", Array.from(acceptedHashes));
+
         // Helper function to hash text
         const hashText = (text: string): string => {
           let hash = 0;
@@ -68,10 +70,22 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
 
         // Filter out gaps that match accepted requirements
         const gaps = (data.gaps as any[]) || [];
+        console.log("Total gaps before filtering:", gaps.length);
+        
         const filteredGaps = gaps.filter(gap => {
           const gapHash = hashText(gap.customerText);
-          return !acceptedHashes.has(gapHash);
+          const isAccepted = acceptedHashes.has(gapHash);
+          if (isAccepted) {
+            console.log("Filtering out accepted gap:", {
+              section: gap.section,
+              hash: gapHash,
+              text: gap.customerText.substring(0, 50) + "..."
+            });
+          }
+          return !isAccepted;
         });
+        
+        console.log("Gaps after filtering:", filteredGaps.length);
 
         // Update the analysis data with filtered gaps
         setAnalysis({
