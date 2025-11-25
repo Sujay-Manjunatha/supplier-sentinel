@@ -30,7 +30,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         setContent(text);
         setFileName(file.name);
         if (!title) {
-          setTitle(file.name.replace(/\.[^/.]+$/, ""));
+          setTitle(file.name.replace(/\.[^.]+$/, ""));
         }
       };
       reader.readAsText(file);
