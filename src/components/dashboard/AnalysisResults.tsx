@@ -3,15 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import GapReviewWizard from "./GapReviewWizard";
-import ReviewSummary from "./ReviewSummary";
+import { ReviewSummary } from "./ReviewSummary";
 
 interface Gap {
   section: string;
   customerText: string;
-  baselineText: string;
-  recommendation: string;
   severity: "KRITISCH" | "MITTEL" | "GERING";
-  explanation: string;
+  aiRecommendation: "AKZEPTIEREN" | "ABLEHNEN" | "PRÜFEN";
+  reasoning: string;
+  risksIfAccepted: string;
+  risksIfRejected: string;
 }
 
 interface AnalysisResultsProps {
@@ -23,7 +24,7 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState<"initial" | "review" | "summary">("initial");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [decisions, setDecisions] = useState<Record<number, boolean>>({});
+  const [decisions, setDecisions] = useState<Record<number, 'accept' | 'reject'>>({});
 
   useEffect(() => {
     if (analysisId) {
@@ -58,22 +59,21 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
         console.log("Accepted requirement hashes:", Array.from(acceptedHashes));
 
         // Helper function to hash text
-        const hashText = (text: string): string => {
-          let hash = 0;
-          for (let i = 0; i < text.length; i++) {
-            const char = text.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-          }
-          return hash.toString();
+        const hashText = async (text: string): Promise<string> => {
+          const encoder = new TextEncoder();
+          const data = encoder.encode(text);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         };
 
         // Filter out gaps that match accepted requirements
         const gaps = (data.gaps as any[]) || [];
         console.log("Total gaps before filtering:", gaps.length);
         
-        const filteredGaps = gaps.filter(gap => {
-          const gapHash = hashText(gap.customerText);
+        const filteredGaps = [];
+        for (const gap of gaps) {
+          const gapHash = await hashText(gap.customerText);
           const isAccepted = acceptedHashes.has(gapHash);
           if (isAccepted) {
             console.log("Filtering out accepted gap:", {
@@ -81,9 +81,10 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
               hash: gapHash,
               text: gap.customerText.substring(0, 50) + "..."
             });
+          } else {
+            filteredGaps.push(gap);
           }
-          return !isAccepted;
-        });
+        }
         
         console.log("Gaps after filtering:", filteredGaps.length);
 
@@ -114,11 +115,11 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
   };
 
   const handleAccept = (index: number) => {
-    setDecisions((prev) => ({ ...prev, [index]: true }));
+    setDecisions((prev) => ({ ...prev, [index]: 'accept' }));
   };
 
   const handleReject = (index: number) => {
-    setDecisions((prev) => ({ ...prev, [index]: false }));
+    setDecisions((prev) => ({ ...prev, [index]: 'reject' }));
   };
 
   const handlePrevious = () => {
@@ -171,7 +172,7 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
           <div>
             <h4 className="text-xl font-semibold text-foreground mb-2">Keine Lücken gefunden</h4>
             <p className="text-muted-foreground">
-              Ihr eigener Kodex erfüllt alle Anforderungen des Kunden vollständig.
+              Alle Kundenanforderungen wurden bereits dauerhaft akzeptiert oder erfüllen bereits Ihren Kodex.
             </p>
           </div>
         </div>

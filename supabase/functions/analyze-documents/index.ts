@@ -9,10 +9,11 @@ const corsHeaders = {
 interface Gap {
   section: string;
   customerText: string;
-  baselineText: string;
-  recommendation: string;
   severity: 'KRITISCH' | 'MITTEL' | 'GERING';
-  explanation: string;
+  aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  reasoning: string;
+  risksIfAccepted: string;
+  risksIfRejected: string;
 }
 
 serve(async (req) => {
@@ -34,59 +35,67 @@ serve(async (req) => {
     const systemPrompt = `Du bist ein Experte für Compliance-Analysen aus der Perspektive eines LIEFERANTEN.
 
 KONTEXT:
-- "MEIN KODEX" = Der eigene Lieferantenkodex des Benutzers (Baseline/Referenz)
-- "KUNDENKODEX" = Der Lieferantenkodex, den der Kunde vom Benutzer erwartet
+- "MEIN KODEX" = Der eigene Lieferantenkodex des Benutzers (als Information/Hintergrund)
+- "KUNDENKODEX" = Der Lieferantenkodex, den der Kunde vom Lieferanten fordert
 
 DEINE AUFGABE:
-Finde alle Anforderungen, die der KUNDE in seinem Kodex stellt, die im EIGENEN Kodex des Lieferanten entweder:
-1. FEHLEN (= nicht vorhanden)
-2. SCHWÄCHER formuliert sind (= weniger streng als beim Kunden)
+Analysiere jede Anforderung aus dem KUNDENKODEX und bewerte:
+1. Sollte der Lieferant diese Anforderung akzeptieren?
+2. Welche Risiken entstehen bei Akzeptanz?
+3. Welche Risiken entstehen bei Ablehnung?
 
-NICHT RELEVANT (IGNORIERE DIESE):
-- Anforderungen, die der Lieferant selbst hat, aber der Kunde NICHT fordert
-- Wenn der eigene Kodex STRENGER ist als der Kundenkodex
-- Das sind KEINE Gaps, da höhere eigene Standards kein Problem darstellen
+Der eigene Kodex dient nur als Hintergrund-Information. Bewerte jede Kundenanforderung unabhängig.
 
-NUR DIESE SIND GAPS:
-- Kundenanforderungen, die im eigenen Kodex FEHLEN
-- Kundenanforderungen, die STRENGER sind als im eigenen Kodex
+BEWERTUNGSKRITERIEN:
+- AKZEPTIEREN: Anforderung ist vernünftig, branchenüblich, keine erheblichen Risiken
+- ABLEHNEN: Anforderung ist unrealistisch, zu kostspielig, rechtlich problematisch, oder wirtschaftlich unzumutbar
+- PRÜFEN: Anforderung erfordert weitere Klärung, Verhandlung oder individuelle Prüfung
 
 SCHWEREGRAD-KLASSIFIZIERUNG:
 - KRITISCH: Rechtliche/regulatorische Risiken, große Haftung, grundlegende ethische Verstöße
-- MITTEL: Wichtige betriebliche/ethische Bedenken
-- GERING: Kleinere Unterschiede, Verbesserungsbereiche
+- MITTEL: Wichtige betriebliche/ethische Bedenken, moderate Kosten
+- GERING: Kleinere organisatorische Anpassungen, geringe Kosten
 
 AUSGABEFORMAT für jeden Gap:
 - section: Abschnitts-/Themenname
-- customerText: Was der Kunde konkret fordert
-- baselineText: Was im eigenen Kodex steht (oder "Nicht vorhanden")
-- recommendation: Konkrete Handlungsempfehlung
+- customerText: Die konkrete Anforderung des Kunden
 - severity: KRITISCH | MITTEL | GERING
-- explanation: Kurze Erklärung, warum dies ein Gap ist
+- aiRecommendation: AKZEPTIEREN | ABLEHNEN | PRÜFEN
+- reasoning: Detaillierte Begründung deiner Empfehlung (2-4 Sätze)
+- risksIfAccepted: Konkrete Risiken bei Akzeptanz (rechtlich, operativ, finanziell)
+- risksIfRejected: Konkrete Risiken bei Ablehnung (Geschäftsbeziehung, Wettbewerbsnachteile)
 
-WICHTIG: Alle Antworten müssen auf Deutsch sein. Konzentriere dich auf semantische Unterschiede, nicht auf Formulierungen.`;
+WICHTIG: 
+- Alle Antworten auf Deutsch
+- Sei präzise und praxisorientiert
+- Berücksichtige reale Geschäftsbeziehungen zwischen Lieferant und Kunde
+- Fokussiere auf machbare, realistische Einschätzungen`;
 
     const userPrompt = `Analysiere diese beiden Lieferantenkodizes aus Lieferantenperspektive:
 
-MEIN EIGENER LIEFERANTENKODEX (Baseline-Referenz):
+MEIN EIGENER LIEFERANTENKODEX (nur als Hintergrund-Information):
 ${baselineContent}
 
 KUNDENKODEX (Was der Kunde von mir als Lieferant fordert):
 ${comparisonContent}
 
-Identifiziere alle Anforderungen, die der KUNDE stellt, die in MEINEM EIGENEN Kodex entweder FEHLEN oder SCHWÄCHER formuliert sind.
+Bewerte jede Anforderung aus dem KUNDENKODEX:
+- Sollte ich als Lieferant diese Anforderung akzeptieren?
+- Welche Risiken entstehen bei Akzeptanz?
+- Welche Risiken entstehen bei Ablehnung?
 
-Liefere eine umfassende Gap-Analyse im JSON-Format mit dieser Struktur:
+Liefere eine umfassende Analyse im JSON-Format mit dieser Struktur:
 {
-  "overallCompliance": <Prozentsatz 0-100, wie gut mein Kodex die Kundenanforderungen erfüllt>,
+  "overallCompliance": <Prozentsatz 0-100, wie viele Anforderungen realistisch akzeptierbar sind>,
   "gaps": [
     {
       "section": "Abschnittsname",
       "customerText": "Konkrete Anforderung aus dem Kundenkodex",
-      "baselineText": "Was ich in meinem eigenen Kodex habe (oder 'Nicht vorhanden')",
-      "recommendation": "Was ich tun sollte, um diese Lücke zu schließen",
       "severity": "KRITISCH|MITTEL|GERING",
-      "explanation": "Warum dies ein Gap ist und welche Risiken bestehen"
+      "aiRecommendation": "AKZEPTIEREN|ABLEHNEN|PRÜFEN",
+      "reasoning": "Detaillierte Begründung der Empfehlung",
+      "risksIfAccepted": "Konkrete Risiken bei Akzeptanz dieser Anforderung",
+      "risksIfRejected": "Konkrete Risiken bei Ablehnung dieser Anforderung"
     }
   ]
 }`;
