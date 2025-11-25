@@ -12,8 +12,10 @@ import { toast } from "sonner";
 interface Gap {
   section: string;
   customerText: string;
+  gapType: 'ZUSÄTZLICH' | 'STRENGER' | 'WIDERSPRUCH';
   severity: 'KRITISCH' | 'MITTEL' | 'GERING';
   aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  ownCodexCoverage: string;
   reasoning: string;
   risksIfAccepted: string;
 }

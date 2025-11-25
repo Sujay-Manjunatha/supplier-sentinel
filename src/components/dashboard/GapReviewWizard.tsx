@@ -22,8 +22,10 @@ import { cn } from "@/lib/utils";
 interface Gap {
   section: string;
   customerText: string;
+  gapType: 'ZUSÄTZLICH' | 'STRENGER' | 'WIDERSPRUCH';
   severity: 'KRITISCH' | 'MITTEL' | 'GERING';
   aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  ownCodexCoverage: string;
   reasoning: string;
   risksIfAccepted: string;
 }
@@ -191,6 +193,19 @@ const GapReviewWizard = ({
     }
   };
 
+  const getGapTypeBadge = (gapType: string) => {
+    switch (gapType) {
+      case 'ZUSÄTZLICH':
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-200">Zusätzliche Anforderung</Badge>;
+      case 'STRENGER':
+        return <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-200">Strengere Anforderung</Badge>;
+      case 'WIDERSPRUCH':
+        return <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200">Widersprüchliche Anforderung</Badge>;
+      default:
+        return null;
+    }
+  };
+
   const getStatusIcon = (index: number) => {
     if (decisions[index] === 'accept') return <CheckCircle2 className="h-4 w-4 text-green-500" />;
     if (decisions[index] === 'reject') return <XCircle className="h-4 w-4 text-red-500" />;
@@ -266,14 +281,14 @@ const GapReviewWizard = ({
 
               {/* Content sections */}
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getGapTypeBadge(currentGap.gapType)}
+                  <div className="flex items-center gap-2">
                     {getRecommendationIcon(currentGap.aiRecommendation)}
-                    KI-Empfehlung
-                  </h3>
-                  <Badge variant={getRecommendationBadge(currentGap.aiRecommendation)}>
-                    KI empfiehlt: {currentGap.aiRecommendation}
-                  </Badge>
+                    <Badge variant={getRecommendationBadge(currentGap.aiRecommendation)}>
+                      KI empfiehlt: {currentGap.aiRecommendation}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div>
@@ -288,8 +303,18 @@ const GapReviewWizard = ({
 
                 <div>
                   <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Mein Kodex zu diesem Thema
+                  </h3>
+                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                    {currentGap.ownCodexCoverage}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
-                    KI-Begründung
+                    Warum ist dies eine Abweichung?
                   </h3>
                   <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                     {currentGap.reasoning}
