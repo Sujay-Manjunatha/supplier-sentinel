@@ -108,6 +108,12 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (baselineError) throw baselineError;
 
+      // Get accepted requirements for this user
+      const { data: acceptedRequirements } = await supabase
+        .from("accepted_requirements")
+        .select("requirement_text, section, category")
+        .eq("user_id", userId);
+
       // Save comparison document
       const { data: comparisonDoc, error: comparisonError } = await supabase
         .from("comparison_documents")
@@ -130,6 +136,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
           body: {
             baselineContent: baseline.content,
             comparisonContent: content,
+            acceptedRequirements: acceptedRequirements || [],
           },
         }
       );
