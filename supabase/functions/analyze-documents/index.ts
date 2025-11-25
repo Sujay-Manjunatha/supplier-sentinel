@@ -23,9 +23,10 @@ serve(async (req) => {
   }
 
   try {
-    const { baselineContent, comparisonContent } = await req.json();
+    const { baselineContent, comparisonContent, acceptedRequirements = [] } = await req.json();
     
     console.log('Starting document analysis...');
+    console.log(`Found ${acceptedRequirements.length} permanently accepted requirements`);
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -78,13 +79,20 @@ WICHTIG:
 - Sei streng bei der Gap-Identifikation - nur echte Lücken melden
 - Qualität vor Quantität - lieber 5 echte Gaps als 20 irrelevante`;
 
+    const acceptedReqText = acceptedRequirements.length > 0 
+      ? `\n\nBEREITS DAUERHAFT AKZEPTIERTE ANFORDERUNGEN (IGNORIEREN!):
+${acceptedRequirements.map((r: any) => `- ${r.section}: ${r.requirement_text}`).join('\n')}
+
+Diese Anforderungen wurden bereits vom Benutzer dauerhaft akzeptiert und sollen NICHT als Gap identifiziert werden, auch wenn sie im Kundenkodex stehen!`
+      : '';
+
     const userPrompt = `Analysiere diese beiden Lieferantenkodizes aus Lieferantenperspektive:
 
 MEIN EIGENER LIEFERANTENKODEX:
 ${baselineContent}
 
 KUNDENKODEX (Was der Kunde von mir als Lieferant fordert):
-${comparisonContent}
+${comparisonContent}${acceptedReqText}
 
 Identifiziere NUR echte Abweichungen und Zusatzanforderungen:
 - Welche Anforderungen im Kundenkodex sind NICHT oder UNZUREICHEND im eigenen Kodex abgedeckt?

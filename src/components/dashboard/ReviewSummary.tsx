@@ -34,6 +34,7 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, 
   const [emailTemplate, setEmailTemplate] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   const acceptedCount = Object.values(decisions).filter(d => d === 'accept').length;
   const rejectedCount = Object.values(decisions).filter(d => d === 'reject').length;
@@ -131,6 +132,7 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, 
 
       if (error) throw error;
 
+      setIsSaved(true);
       toast.success("Bewertung erfolgreich gespeichert!");
     } catch (error) {
       console.error('Error saving evaluation:', error);
@@ -273,13 +275,18 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, 
                 onClick={saveEvaluation} 
                 variant="secondary" 
                 className="w-full"
-                disabled={isSaving}
+                disabled={isSaving || isSaved}
                 size="lg"
               >
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Speichere...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    ✓ Bewertung gespeichert
                   </>
                 ) : (
                   <>
