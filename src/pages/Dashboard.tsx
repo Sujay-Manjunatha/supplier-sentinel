@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import BaselineSetup from "@/components/dashboard/BaselineSetup";
 import ComparisonUpload from "@/components/dashboard/ComparisonUpload";
 import AnalysisResults from "@/components/dashboard/AnalysisResults";
+import AcceptedRequirements from "@/components/dashboard/AcceptedRequirements";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Dashboard = () => {
@@ -99,13 +100,16 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
-            <TabsTrigger value="baseline">Baseline Setup</TabsTrigger>
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4">
+            <TabsTrigger value="baseline">Mein Kodex</TabsTrigger>
             <TabsTrigger value="compare" disabled={!baselineId}>
-              Upload & Compare
+              Vergleichen
             </TabsTrigger>
             <TabsTrigger value="results" disabled={!analysisId}>
-              Analysis Results
+              Ergebnisse
+            </TabsTrigger>
+            <TabsTrigger value="accepted">
+              Akzeptierte Punkte
             </TabsTrigger>
           </TabsList>
 
@@ -127,6 +131,10 @@ const Dashboard = () => {
 
           <TabsContent value="results" className="space-y-4">
             <AnalysisResults analysisId={analysisId} />
+          </TabsContent>
+
+          <TabsContent value="accepted" className="space-y-4">
+            <AcceptedRequirements />
           </TabsContent>
         </Tabs>
       </main>
