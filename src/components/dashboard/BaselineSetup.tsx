@@ -53,8 +53,8 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
 
     if (!isPDF && !isTXT) {
       toast({
-        title: "Unsupported file type",
-        description: "Please upload a PDF or plain text (.txt) file.",
+        title: "Nicht unterstützter Dateityp",
+        description: "Bitte laden Sie eine PDF- oder TXT-Datei hoch.",
         variant: "destructive",
       });
       return;
@@ -80,8 +80,8 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
 
       if (!text || text.trim().length === 0) {
         toast({
-          title: "Empty document",
-          description: "The file appears to be empty or contains no extractable text.",
+          title: "Leeres Dokument",
+          description: "Die Datei scheint leer zu sein oder enthält keinen extrahierbaren Text.",
           variant: "destructive",
         });
         return;
@@ -94,14 +94,14 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
       }
 
       toast({
-        title: "File uploaded",
-        description: isPDF ? "Text extracted from PDF successfully." : "Text file loaded successfully.",
+        title: "Datei hochgeladen",
+        description: isPDF ? "Text wurde erfolgreich aus PDF extrahiert." : "Textdatei erfolgreich geladen.",
       });
     } catch (error) {
       console.error("File upload error:", error);
       toast({
-        title: "Upload failed",
-        description: "Failed to process the file. Please try again.",
+        title: "Upload fehlgeschlagen",
+        description: "Die Datei konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -112,8 +112,8 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
   const handleSave = async () => {
     if (!title || !content) {
       toast({
-        title: "Error",
-        description: "Please provide both title and content",
+        title: "Fehler",
+        description: "Bitte geben Sie sowohl Titel als auch Inhalt an",
         variant: "destructive",
       });
       return;
@@ -136,8 +136,8 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
         if (error) throw error;
 
         toast({
-          title: "Updated",
-          description: "Baseline document updated successfully",
+          title: "Aktualisiert",
+          description: "Lieferantenkodex erfolgreich aktualisiert",
         });
         onBaselineCreated(existingBaseline.id);
       } else {
@@ -156,15 +156,15 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
         if (error) throw error;
 
         toast({
-          title: "Success",
-          description: "Baseline document saved successfully",
+          title: "Erfolg",
+          description: "Lieferantenkodex erfolgreich gespeichert",
         });
         onBaselineCreated(data.id);
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to save baseline document",
+        title: "Fehler",
+        description: error.message || "Lieferantenkodex konnte nicht gespeichert werden",
         variant: "destructive",
       });
     } finally {
@@ -175,7 +175,7 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
   const handleDelete = async () => {
     if (!existingBaseline) return;
 
-    if (!confirm("Are you sure you want to delete this baseline document?")) return;
+    if (!confirm("Möchten Sie diesen Lieferantenkodex wirklich löschen?")) return;
 
     setLoading(true);
 
@@ -193,13 +193,13 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
       setFileName("");
       
       toast({
-        title: "Deleted",
-        description: "Baseline document deleted successfully",
+        title: "Gelöscht",
+        description: "Lieferantenkodex erfolgreich gelöscht",
       });
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete baseline document",
+        title: "Fehler",
+        description: error.message || "Lieferantenkodex konnte nicht gelöscht werden",
         variant: "destructive",
       });
     } finally {
@@ -211,15 +211,15 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
     <Card className="p-6 max-w-4xl mx-auto">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Baseline Supplier Code</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Mein Lieferantenkodex</h2>
           <p className="text-muted-foreground">
-            Upload or enter your supplier code to use as the reference for all comparisons.
+            Laden Sie Ihren eigenen Lieferantenkodex hoch. Dieser dient als Referenz, um zu prüfen, welche Kundenanforderungen Sie bereits erfüllen.
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="baseline-file">Upload Document (Optional)</Label>
+            <Label htmlFor="baseline-file">Dokument hochladen (Optional)</Label>
             <div className="flex items-center gap-4">
               <Input
                 id="baseline-file"
@@ -239,20 +239,20 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="baseline-title">Document Title</Label>
+            <Label htmlFor="baseline-title">Dokumenttitel</Label>
             <Input
               id="baseline-title"
-              placeholder="e.g., Company Supplier Code v2.0"
+              placeholder="z.B. Unternehmen Lieferantenkodex v2.0"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="baseline-content">Content</Label>
+            <Label htmlFor="baseline-content">Inhalt</Label>
             <Textarea
               id="baseline-content"
-              placeholder="Paste or type your supplier code content here..."
+              placeholder="Fügen Sie den Inhalt Ihres Lieferantenkodex hier ein..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[300px] font-mono text-sm"
@@ -262,12 +262,12 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
           <div className="flex gap-3">
             <Button onClick={handleSave} disabled={loading} className="flex-1">
               <Upload className="h-4 w-4 mr-2" />
-              {existingBaseline ? "Update Baseline" : "Save Baseline"}
+              {existingBaseline ? "Kodex aktualisieren" : "Kodex speichern"}
             </Button>
             {existingBaseline && (
               <Button variant="destructive" onClick={handleDelete} disabled={loading}>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                Löschen
               </Button>
             )}
           </div>

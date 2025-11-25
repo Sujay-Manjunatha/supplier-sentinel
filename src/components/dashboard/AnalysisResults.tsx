@@ -114,9 +114,9 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
             <span className="text-3xl">✓</span>
           </div>
           <div>
-            <h4 className="text-xl font-semibold text-foreground mb-2">Keine Abweichungen gefunden</h4>
+            <h4 className="text-xl font-semibold text-foreground mb-2">Keine Lücken gefunden</h4>
             <p className="text-muted-foreground">
-              Der Lieferantenkodex des Kunden entspricht vollständig Ihren Baseline-Anforderungen.
+              Ihr eigener Kodex erfüllt alle Anforderungen des Kunden vollständig.
             </p>
           </div>
         </div>
