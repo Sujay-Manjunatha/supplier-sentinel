@@ -12,7 +12,7 @@ import extract from "react-pdftotext";
 interface ComparisonUploadProps {
   userId: string;
   baselineId: string | null;
-  onAnalysisComplete: (analysisId: string) => void;
+  onAnalysisComplete: (analysisId: string, comparisonDocumentId: string) => void;
 }
 
 const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: ComparisonUploadProps) => {
@@ -162,7 +162,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         description: "Ihr Dokument wurde erfolgreich analysiert",
       });
 
-      onAnalysisComplete(analysis.id);
+      onAnalysisComplete(analysis.id, comparisonDoc.id);
 
       // Reset form
       setTitle("");
