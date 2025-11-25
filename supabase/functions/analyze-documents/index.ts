@@ -11,7 +11,7 @@ interface Gap {
   customerText: string;
   baselineText: string;
   recommendation: string;
-  severity: 'critical' | 'medium' | 'low';
+  severity: 'KRITISCH' | 'MITTEL' | 'GERING';
   explanation: string;
 }
 
@@ -31,44 +31,48 @@ serve(async (req) => {
     }
 
     // Use AI to analyze and compare documents semantically
-    const systemPrompt = `You are an expert compliance analyst specializing in supplier code comparison. Your task is to:
+    const systemPrompt = `Du bist ein Experte für Compliance-Analysen, spezialisiert auf den Vergleich von Lieferantenkodizes.
+Deine Aufgabe ist es, zwei Lieferantenkodizes zu analysieren und Lücken zu identifizieren, bei denen der Kodex des Kunden die Baseline-Anforderungen nicht erfüllt.
 
-1. Analyze both supplier codes semantically (meaning-based, NOT word-for-word)
-2. Identify key requirements and topics in both documents
-3. Find gaps where the customer's code has requirements that are missing, weaker, or significantly different from the baseline
-4. Classify each gap by severity:
-   - CRITICAL: Legal/regulatory issues, major liability risks, fundamental ethical violations
-   - MEDIUM: Important operational or ethical concerns that need attention
-   - LOW: Minor differences or areas for improvement
+KRITISCHE ANWEISUNGEN:
+1. Vergleiche den Lieferantenkodex des Kunden mit dem Baseline-Kodex semantisch (bedeutungsbasiert, NICHT Wort-für-Wort)
+2. Identifiziere Schlüsselanforderungen und Themen in beiden Dokumenten
+3. Finde Lücken, bei denen der Kodex des Kunden Anforderungen hat, die fehlen, schwächer sind oder sich erheblich von der Baseline unterscheiden
+4. Klassifiziere jede Lücke nach Schweregrad:
+   - KRITISCH: Rechtliche/regulatorische Probleme, große Haftungsrisiken, grundlegende ethische Verstöße
+   - MITTEL: Wichtige betriebliche oder ethische Bedenken, die Aufmerksamkeit erfordern
+   - GERING: Kleinere Unterschiede oder Verbesserungsbereiche
 
-For each gap found, provide:
-- The section/topic name
-- The problematic text from customer's document
-- The corresponding reference from baseline
-- A clear recommendation
-- Severity classification with brief explanation
+Für jede gefundene Lücke gib an:
+- Den Abschnitts-/Themennamen
+- Den problematischen Text aus dem Kundendokument
+- Die entsprechende Referenz aus der Baseline
+- Eine klare Empfehlung
+- Schweregrad-Klassifizierung mit kurzer Erklärung
 
-Focus on substantive differences in meaning and requirements, not minor wording variations.`;
+Konzentriere dich auf wesentliche Unterschiede in Bedeutung und Anforderungen, nicht auf geringfügige Formulierungsvariationen.
 
-    const userPrompt = `Compare these two supplier codes and identify gaps:
+WICHTIG: Alle deine Antworten müssen auf Deutsch sein.`;
 
-BASELINE SUPPLIER CODE (Our Reference):
+    const userPrompt = `Vergleiche diese beiden Lieferantenkodizes und identifiziere Lücken:
+
+BASELINE LIEFERANTENKODEX (Unsere Referenz):
 ${baselineContent}
 
-CUSTOMER SUPPLIER CODE (To Compare):
+KUNDEN LIEFERANTENKODEX (Zu vergleichen):
 ${comparisonContent}
 
-Provide a comprehensive gap analysis in JSON format with this structure:
+Liefere eine umfassende Lückenanalyse im JSON-Format mit dieser Struktur:
 {
-  "overallCompliance": <percentage 0-100>,
+  "overallCompliance": <Prozentsatz 0-100>,
   "gaps": [
     {
-      "section": "Section name",
-      "customerText": "Text from customer code",
-      "baselineText": "Text from baseline code",
-      "recommendation": "How to address this gap",
-      "severity": "critical|medium|low",
-      "explanation": "Brief explanation of why this is an issue"
+      "section": "Abschnittsname",
+      "customerText": "Text aus Kundenkodex",
+      "baselineText": "Text aus Baseline-Kodex",
+      "recommendation": "Wie diese Lücke zu beheben ist",
+      "severity": "KRITISCH|MITTEL|GERING",
+      "explanation": "Kurze Erklärung, warum dies ein Problem ist"
     }
   ]
 }`;
@@ -125,9 +129,9 @@ Provide a comprehensive gap analysis in JSON format with this structure:
 
     // Calculate gap statistics
     const gaps: Gap[] = analysisResult.gaps || [];
-    const criticalGaps = gaps.filter(g => g.severity === 'critical').length;
-    const mediumGaps = gaps.filter(g => g.severity === 'medium').length;
-    const lowGaps = gaps.filter(g => g.severity === 'low').length;
+    const criticalGaps = gaps.filter(g => g.severity === 'KRITISCH').length;
+    const mediumGaps = gaps.filter(g => g.severity === 'MITTEL').length;
+    const lowGaps = gaps.filter(g => g.severity === 'GERING').length;
 
     const result = {
       overallCompliance: analysisResult.overallCompliance || 0,
