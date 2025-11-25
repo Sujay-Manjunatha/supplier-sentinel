@@ -1,219 +1,250 @@
-import { Card } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, AlertTriangle, Info, CheckCircle, FileText } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle2, XCircle, AlertTriangle, RotateCcw, Mail, Copy, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Gap {
   section: string;
   customerText: string;
-  baselineText: string;
-  recommendation: string;
-  severity: "KRITISCH" | "MITTEL" | "GERING";
-  explanation: string;
+  severity: 'KRITISCH' | 'MITTEL' | 'GERING';
+  aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  reasoning: string;
+  risksIfAccepted: string;
+  risksIfRejected: string;
 }
 
 interface ReviewSummaryProps {
   gaps: Gap[];
-  decisions: Record<number, boolean>;
+  decisions: Record<number, 'accept' | 'reject'>;
   overallCompliance: number;
   onRestart: () => void;
 }
 
-const ReviewSummary = ({
-  gaps,
-  decisions,
-  overallCompliance,
-  onRestart,
-}: ReviewSummaryProps) => {
-  const rejectedGaps = gaps.filter((_, index) => decisions[index] === false);
-  const acceptedCount = gaps.filter((_, index) => decisions[index] === true).length;
-  const rejectedCount = rejectedGaps.length;
+export const ReviewSummary = ({ gaps, decisions, overallCompliance, onRestart }: ReviewSummaryProps) => {
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTemplate, setEmailTemplate] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const criticalRejected = rejectedGaps.filter((gap) => gap.severity === "KRITISCH").length;
-  const mediumRejected = rejectedGaps.filter((gap) => gap.severity === "MITTEL").length;
-  const lowRejected = rejectedGaps.filter((gap) => gap.severity === "GERING").length;
+  const acceptedCount = Object.values(decisions).filter(d => d === 'accept').length;
+  const rejectedCount = Object.values(decisions).filter(d => d === 'reject').length;
+
+  const rejectedGaps = gaps.filter((_, index) => decisions[index] === 'reject');
+
+  const generateEmailTemplate = async () => {
+    setIsGenerating(true);
+    try {
+      const rejectedData = rejectedGaps.map(gap => ({
+        section: gap.section,
+        customerText: gap.customerText,
+        reasoning: gap.reasoning,
+        severity: gap.severity
+      }));
+
+      const { data, error } = await supabase.functions.invoke('generate-email', {
+        body: { rejectedGaps: rejectedData }
+      });
+
+      if (error) throw error;
+
+      setEmailTemplate(data.emailTemplate);
+      setShowEmailDialog(true);
+      toast.success("Email-Vorlage erstellt");
+    } catch (error) {
+      console.error('Error generating email:', error);
+      toast.error("Fehler beim Erstellen der Email-Vorlage");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(emailTemplate);
+    toast.success("In Zwischenablage kopiert");
+  };
+
+  const criticalRejected = rejectedGaps.filter(g => g.severity === 'KRITISCH').length;
+  const mediumRejected = rejectedGaps.filter(g => g.severity === 'MITTEL').length;
+  const lowRejected = rejectedGaps.filter(g => g.severity === 'GERING').length;
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case "KRITISCH":
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
-      case "MITTEL":
-        return <AlertTriangle className="h-5 w-5 text-warning" />;
-      case "GERING":
-        return <Info className="h-5 w-5 text-primary" />;
+      case 'KRITISCH':
+        return <AlertTriangle className="h-4 w-4" />;
+      case 'MITTEL':
+        return <AlertTriangle className="h-4 w-4" />;
+      case 'GERING':
+        return <AlertTriangle className="h-4 w-4" />;
       default:
-        return <Info className="h-5 w-5" />;
+        return null;
     }
   };
 
   const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "KRITISCH":
-        return <Badge variant="destructive">Kritisch</Badge>;
-      case "MITTEL":
-        return <Badge className="bg-warning text-warning-foreground">Mittel</Badge>;
-      case "GERING":
-        return <Badge variant="secondary">Gering</Badge>;
-      default:
-        return <Badge>{severity}</Badge>;
-    }
+    const variants = {
+      'KRITISCH': 'destructive' as const,
+      'MITTEL': 'default' as const,
+      'GERING': 'secondary' as const,
+    };
+    return variants[severity as keyof typeof variants] || 'default' as const;
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Summary Header */}
-      <Card className="p-8">
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-8 w-8 text-success" />
-            <h2 className="text-3xl font-bold text-foreground">Bewertung abgeschlossen</h2>
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CheckCircle2 className="h-6 w-6" />
+          Bewertungszusammenfassung
+        </CardTitle>
+        <CardDescription>
+          Übersicht über Ihre Entscheidungen zur Gap-Analyse
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold text-foreground">{overallCompliance}%</div>
+            <div className="text-sm text-muted-foreground">Übereinstimmung</div>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="p-6 bg-success/5 border-success/20">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Gesamtübereinstimmung</p>
-                <p className="text-4xl font-bold text-success">{overallCompliance}%</p>
-              </div>
-            </Card>
-
-            <Card className="p-6 bg-primary/5 border-primary/20">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Akzeptiert</p>
-                <p className="text-4xl font-bold text-primary">{acceptedCount}</p>
-              </div>
-            </Card>
-
-            <Card className="p-6 bg-destructive/5 border-destructive/20">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Nicht akzeptiert</p>
-                <p className="text-4xl font-bold text-destructive">{rejectedCount}</p>
-              </div>
-            </Card>
+          <div className="text-center p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold text-primary">{acceptedCount}</div>
+            <div className="text-sm text-muted-foreground">Akzeptiert</div>
           </div>
-
-          {rejectedCount > 0 && (
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-              <Card className="p-4 border-destructive/20 bg-destructive/5">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-destructive" />
-                    <p className="text-xs font-medium text-muted-foreground">Kritisch</p>
-                  </div>
-                  <p className="text-2xl font-bold text-destructive">{criticalRejected}</p>
-                </div>
-              </Card>
-
-              <Card className="p-4 border-warning/20 bg-warning/5">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
-                    <p className="text-xs font-medium text-muted-foreground">Mittel</p>
-                  </div>
-                  <p className="text-2xl font-bold text-warning">{mediumRejected}</p>
-                </div>
-              </Card>
-
-              <Card className="p-4 border-primary/20 bg-primary/5">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Info className="h-4 w-4 text-primary" />
-                    <p className="text-xs font-medium text-muted-foreground">Gering</p>
-                  </div>
-                  <p className="text-2xl font-bold text-primary">{lowRejected}</p>
-                </div>
-              </Card>
-            </div>
-          )}
+          <div className="text-center p-4 bg-muted rounded-lg">
+            <div className="text-2xl font-bold text-destructive">{rejectedCount}</div>
+            <div className="text-sm text-muted-foreground">Nicht akzeptiert</div>
+          </div>
         </div>
-      </Card>
 
-      {/* Rejected Gaps List */}
-      {rejectedCount > 0 ? (
-        <div className="space-y-4">
-          <h3 className="text-2xl font-bold text-foreground">
-            Nicht akzeptierte Punkte ({rejectedCount})
-          </h3>
-          <p className="text-muted-foreground">
-            Diese Punkte erfordern Aufmerksamkeit und sollten mit dem Lieferanten besprochen werden.
-          </p>
+        {rejectedCount > 0 && (
+          <>
+            <Separator />
+            
+            {/* Rejected by Severity */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-3 bg-destructive/10 rounded-lg">
+                <div className="text-xl font-bold text-destructive">{criticalRejected}</div>
+                <div className="text-xs text-muted-foreground">Kritisch</div>
+              </div>
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <div className="text-xl font-bold text-primary">{mediumRejected}</div>
+                <div className="text-xs text-muted-foreground">Mittel</div>
+              </div>
+              <div className="text-center p-3 bg-secondary/10 rounded-lg">
+                <div className="text-xl font-bold text-secondary-foreground">{lowRejected}</div>
+                <div className="text-xs text-muted-foreground">Gering</div>
+              </div>
+            </div>
 
-          {rejectedGaps.map((gap, index) => (
-            <Card key={index} className="p-6">
+            <Separator />
+
+            {/* Rejected Gaps Details */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg">Nicht akzeptierte Punkte</h3>
+              
               <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  {getSeverityIcon(gap.severity)}
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h4 className="text-xl font-semibold text-foreground">{gap.section}</h4>
-                      {getSeverityBadge(gap.severity)}
+                {rejectedGaps.map((gap, index) => (
+                  <div key={index} className="border-l-4 border-destructive pl-4 py-2">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-semibold text-sm">{gap.section}</h4>
+                        <Badge variant={getSeverityBadge(gap.severity)} className="mt-1">
+                          {getSeverityIcon(gap.severity)}
+                          <span className="ml-1">{gap.severity}</span>
+                        </Badge>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{gap.explanation}</p>
-                  </div>
-                </div>
-
-                <div className="pl-10 space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      <span>Kundenanforderung</span>
+                    <div className="space-y-2 mt-2">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Kundenanforderung:</p>
+                        <p className="text-sm">{gap.customerText}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Grund der Ablehnung:</p>
+                        <p className="text-sm">{gap.reasoning}</p>
+                      </div>
                     </div>
-                    <Card className="p-4 bg-muted/50">
-                      <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                        {gap.customerText}
-                      </p>
-                    </Card>
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <FileText className="h-4 w-4" />
-                      <span>Ihr aktueller Kodex</span>
-                    </div>
-                    <Card className="p-4 bg-primary/5 border-primary/20">
-                      <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
-                        {gap.baselineText}
-                      </p>
-                    </Card>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Empfehlung</p>
-                    <Card className="p-4 bg-destructive/5 border-destructive/20">
-                      <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere">
-                        {gap.recommendation}
-                      </p>
-                    </Card>
-                  </div>
-                </div>
+                ))}
               </div>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card className="p-12 text-center">
-          <div className="space-y-4">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-8 w-8 text-success" />
+
+              <Separator />
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={generateEmailTemplate} 
+                  variant="default" 
+                  className="flex-1"
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generiere...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email-Vorlage erstellen
+                    </>
+                  )}
+                </Button>
+                <Button onClick={onRestart} variant="outline" className="flex-1">
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Neu bewerten
+                </Button>
+              </div>
             </div>
-            <div>
-              <h4 className="text-xl font-semibold text-foreground mb-2">Alle Punkte akzeptiert</h4>
-              <p className="text-muted-foreground">
-                Sie haben alle identifizierten Abweichungen als akzeptabel eingestuft.
-              </p>
+          </>
+        )}
+
+        {rejectedCount === 0 && (
+          <div className="text-center py-8">
+            <CheckCircle2 className="h-12 w-12 mx-auto text-primary mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Alle Punkte akzeptiert!</h3>
+            <p className="text-muted-foreground mb-6">
+              Sie haben alle identifizierten Gaps als akzeptabel bewertet.
+            </p>
+            <Button onClick={onRestart} variant="outline">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Neue Analyse starten
+            </Button>
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Email-Vorlage für abgelehnte Punkte</DialogTitle>
+            <DialogDescription>
+              Diese Vorlage können Sie in Ihr Email-Programm kopieren und an Ihren Kunden senden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={emailTemplate}
+              onChange={(e) => setEmailTemplate(e.target.value)}
+              className="min-h-[400px] font-mono text-sm"
+            />
+            <div className="flex gap-2">
+              <Button onClick={copyToClipboard} className="flex-1">
+                <Copy className="h-4 w-4 mr-2" />
+                In Zwischenablage kopieren
+              </Button>
+              <Button onClick={() => setShowEmailDialog(false)} variant="outline" className="flex-1">
+                Schließen
+              </Button>
             </div>
           </div>
-        </Card>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex justify-center pt-4">
-        <Button onClick={onRestart} size="lg" variant="outline">
-          Bewertung erneut durchführen
-        </Button>
-      </div>
-    </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 };
-
-export default ReviewSummary;
