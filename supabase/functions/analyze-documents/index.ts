@@ -41,23 +41,35 @@ KONTEXT:
 - "KUNDENKODEX" = Der Lieferantenkodex, den der Kunde vom Lieferanten fordert
 
 DEINE AUFGABE:
-Vergleiche den KUNDENKODEX mit MEIN KODEX und identifiziere NUR echte Abweichungen und Zusatzanforderungen:
+Vergleiche den KUNDENKODEX mit MEIN KODEX und identifiziere NUR echte Abweichungen und Zusatzanforderungen.
 
-1. **ZUSÄTZLICHE** Anforderungen: Im Kundenkodex gefordert, aber NICHT im eigenen Kodex abgedeckt
-2. **STRENGERE** Anforderungen: Im Kundenkodex strenger/weitreichender formuliert als im eigenen Kodex
-3. **WIDERSPRÜCHLICHE** Anforderungen: Im Kundenkodex anders/gegenteilig formuliert als im eigenen Kodex
+⚠️ WICHTIGE GRUNDHALTUNG - SEI ENTSPANNT UND GROSSZÜGIG:
+Prüfe auf INHALTLICHE/SEMANTISCHE Übereinstimmung, NICHT auf wörtliche Formulierung!
+Gehe davon aus, dass der Lieferant compliant ist, wenn das Thema im eigenen Kodex behandelt wird - 
+auch wenn die Formulierung anders ist. Im Zweifel ist es KEIN Gap.
 
-WICHTIG - KEINE Gaps für:
-❌ Anforderungen die bereits gleichwertig im eigenen Kodex erfüllt sind
-❌ Standard-Anforderungen die beide Kodizes in ähnlicher Form teilen
-❌ Anforderungen die der eigene Kodex sogar übertrifft
+BEISPIELE FÜR **KEINEN GAP** (diese ignorieren!):
+✓ Kunde: "aktiv verhindern" vs. Eigener Kodex: "Maßnahmen treffen, um sicherzustellen" → Gleiche Intention, KEIN GAP
+✓ Kunde: "verboten" vs. Eigener Kodex: "nicht gestattet" → Gleiche Bedeutung, KEIN GAP
+✓ Kunde: "regelmäßig prüfen" vs. Eigener Kodex: "kontinuierlich überwachen" → Gleicher Zweck, KEIN GAP
+✓ Kunde: "Menschenrechte schützen" vs. Eigener Kodex: "gute Behandlung sicherstellen" → Gleiche Richtung, KEIN GAP
+✓ Kunde: "faire Löhne zahlen" vs. Eigener Kodex: "angemessene Vergütung" → Semantisch gleichwertig, KEIN GAP
 
-NUR ECHTE LÜCKEN UND ABWEICHUNGEN IDENTIFIZIEREN!
+NUR als Gap identifizieren wenn EINE dieser Bedingungen zutrifft:
+1. **ZUSÄTZLICH**: Das Thema kommt im eigenen Kodex GAR NICHT vor (auch nicht sinngemäß/semantisch)
+2. **STRENGER**: Die Anforderung ist DEUTLICH strenger (konkrete Zahlen, Fristen, Zertifizierungen die fehlen)
+3. **WIDERSPRUCH**: Echter Widerspruch (Kunde fordert A, eigener Kodex sagt explizit NICHT-A)
+
+KEINE Gaps für:
+❌ Formulierungsunterschiede bei gleicher Bedeutung
+❌ Synonyme oder umschriebene Formulierungen
+❌ Standard-Anforderungen die beide Kodizes semantisch teilen
+❌ Anforderungen die der eigene Kodex sinngemäß erfüllt
 
 SCHWEREGRAD (bezogen auf das RISIKO für den Lieferanten bei Nicht-Erfüllung):
 - KRITISCH: Erhebliches Risiko (rechtlich, finanziell, Reputationsschaden, Geschäftsbeziehung gefährdet)
 - MITTEL: Moderate Risiken oder Aufwände bei Umsetzung
-- GERING: Geringes Risiko, einfach umzusetzen, geringe Kosten
+- GERING: Geringes Risiko, einfach umzusetzen, geringe Kosten (verwende dies für Formulierungsunterschiede)
 
 BEWERTUNGSKRITERIEN:
 - AKZEPTIEREN: Anforderung ist vernünftig, umsetzbar, geringe Risiken
@@ -76,8 +88,9 @@ AUSGABEFORMAT für jeden Gap:
 
 WICHTIG: 
 - Alle Antworten auf Deutsch
-- Sei streng bei der Gap-Identifikation - nur echte Lücken melden
-- Qualität vor Quantität - lieber 5 echte Gaps als 20 irrelevante`;
+- Sei GROSSZÜGIG und ENTSPANNT bei der Gap-Identifikation - nur echte Lücken melden
+- Qualität vor Quantität - lieber 2-3 echte Gaps als 15 Formulierungsunterschiede
+- Bei Unsicherheit ob es ein Gap ist: Es ist KEIN Gap`;
 
     const acceptedReqText = acceptedRequirements.length > 0 
       ? `\n\nBEREITS DAUERHAFT AKZEPTIERTE ANFORDERUNGEN (IGNORIEREN!):
