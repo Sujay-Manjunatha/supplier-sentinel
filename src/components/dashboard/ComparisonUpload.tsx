@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, FileText, Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import extract from "react-pdftotext";
 
 interface ComparisonUploadProps {
   userId: string;
@@ -21,31 +22,47 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Only support real text files for now to avoid binary/PDF issues
-    if (file.type && file.type !== "text/plain") {
+    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isTXT = file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt");
+
+    if (!isPDF && !isTXT) {
       toast({
         title: "Unsupported file type",
-        description: "Please upload a plain text (.txt) file or paste the content manually.",
+        description: "Please upload a PDF or plain text (.txt) file.",
         variant: "destructive",
       });
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
+    setLoading(true);
 
-      // Guard against binary content (e.g. PDFs) that slipped through
-      if (text.includes("\u0000")) {
+    try {
+      let text: string;
+
+      if (isPDF) {
+        // Extract text from PDF
+        text = await extract(file);
+      } else {
+        // Read text file
+        text = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = reject;
+          reader.readAsText(file);
+        });
+      }
+
+      if (!text || text.trim().length === 0) {
         toast({
-          title: "Unsupported file content",
-          description: "This file looks like a binary document (e.g. PDF). Please convert it to text first.",
+          title: "Empty document",
+          description: "The file appears to be empty or contains no extractable text.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
@@ -54,8 +71,21 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       if (!title) {
         setTitle(file.name.replace(/\.[^.]+$/, ""));
       }
-    };
-    reader.readAsText(file);
+
+      toast({
+        title: "File uploaded",
+        description: isPDF ? "Text extracted from PDF successfully." : "Text file loaded successfully.",
+      });
+    } catch (error) {
+      console.error("File upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to process the file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -167,8 +197,9 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
               <Input
                 id="comparison-file"
                 type="file"
-                accept=".txt"
+                accept=".txt,.pdf"
                 onChange={handleFileUpload}
+                disabled={loading}
                 className="flex-1"
               />
               {fileName && (
