@@ -156,7 +156,7 @@ const ReviewSummary = ({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <FileText className="h-4 w-4" />
-                      <span>Kundentext</span>
+                      <span>Kundenanforderung</span>
                     </div>
                     <Card className="p-4 bg-muted/50">
                       <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">
@@ -168,7 +168,7 @@ const ReviewSummary = ({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <FileText className="h-4 w-4" />
-                      <span>Baseline-Referenz</span>
+                      <span>Ihr aktueller Kodex</span>
                     </div>
                     <Card className="p-4 bg-primary/5 border-primary/20">
                       <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap">

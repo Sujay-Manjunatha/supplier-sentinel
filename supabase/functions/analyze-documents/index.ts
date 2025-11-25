@@ -31,48 +31,62 @@ serve(async (req) => {
     }
 
     // Use AI to analyze and compare documents semantically
-    const systemPrompt = `Du bist ein Experte für Compliance-Analysen, spezialisiert auf den Vergleich von Lieferantenkodizes.
-Deine Aufgabe ist es, zwei Lieferantenkodizes zu analysieren und Lücken zu identifizieren, bei denen der Kodex des Kunden die Baseline-Anforderungen nicht erfüllt.
+    const systemPrompt = `Du bist ein Experte für Compliance-Analysen aus der Perspektive eines LIEFERANTEN.
 
-KRITISCHE ANWEISUNGEN:
-1. Vergleiche den Lieferantenkodex des Kunden mit dem Baseline-Kodex semantisch (bedeutungsbasiert, NICHT Wort-für-Wort)
-2. Identifiziere Schlüsselanforderungen und Themen in beiden Dokumenten
-3. Finde Lücken, bei denen der Kodex des Kunden Anforderungen hat, die fehlen, schwächer sind oder sich erheblich von der Baseline unterscheiden
-4. Klassifiziere jede Lücke nach Schweregrad:
-   - KRITISCH: Rechtliche/regulatorische Probleme, große Haftungsrisiken, grundlegende ethische Verstöße
-   - MITTEL: Wichtige betriebliche oder ethische Bedenken, die Aufmerksamkeit erfordern
-   - GERING: Kleinere Unterschiede oder Verbesserungsbereiche
+KONTEXT:
+- "MEIN KODEX" = Der eigene Lieferantenkodex des Benutzers (Baseline/Referenz)
+- "KUNDENKODEX" = Der Lieferantenkodex, den der Kunde vom Benutzer erwartet
 
-Für jede gefundene Lücke gib an:
-- Den Abschnitts-/Themennamen
-- Den problematischen Text aus dem Kundendokument
-- Die entsprechende Referenz aus der Baseline
-- Eine klare Empfehlung
-- Schweregrad-Klassifizierung mit kurzer Erklärung
+DEINE AUFGABE:
+Finde alle Anforderungen, die der KUNDE in seinem Kodex stellt, die im EIGENEN Kodex des Lieferanten entweder:
+1. FEHLEN (= nicht vorhanden)
+2. SCHWÄCHER formuliert sind (= weniger streng als beim Kunden)
 
-Konzentriere dich auf wesentliche Unterschiede in Bedeutung und Anforderungen, nicht auf geringfügige Formulierungsvariationen.
+NICHT RELEVANT (IGNORIERE DIESE):
+- Anforderungen, die der Lieferant selbst hat, aber der Kunde NICHT fordert
+- Wenn der eigene Kodex STRENGER ist als der Kundenkodex
+- Das sind KEINE Gaps, da höhere eigene Standards kein Problem darstellen
 
-WICHTIG: Alle deine Antworten müssen auf Deutsch sein.`;
+NUR DIESE SIND GAPS:
+- Kundenanforderungen, die im eigenen Kodex FEHLEN
+- Kundenanforderungen, die STRENGER sind als im eigenen Kodex
 
-    const userPrompt = `Vergleiche diese beiden Lieferantenkodizes und identifiziere Lücken:
+SCHWEREGRAD-KLASSIFIZIERUNG:
+- KRITISCH: Rechtliche/regulatorische Risiken, große Haftung, grundlegende ethische Verstöße
+- MITTEL: Wichtige betriebliche/ethische Bedenken
+- GERING: Kleinere Unterschiede, Verbesserungsbereiche
 
-BASELINE LIEFERANTENKODEX (Unsere Referenz):
+AUSGABEFORMAT für jeden Gap:
+- section: Abschnitts-/Themenname
+- customerText: Was der Kunde konkret fordert
+- baselineText: Was im eigenen Kodex steht (oder "Nicht vorhanden")
+- recommendation: Konkrete Handlungsempfehlung
+- severity: KRITISCH | MITTEL | GERING
+- explanation: Kurze Erklärung, warum dies ein Gap ist
+
+WICHTIG: Alle Antworten müssen auf Deutsch sein. Konzentriere dich auf semantische Unterschiede, nicht auf Formulierungen.`;
+
+    const userPrompt = `Analysiere diese beiden Lieferantenkodizes aus Lieferantenperspektive:
+
+MEIN EIGENER LIEFERANTENKODEX (Baseline-Referenz):
 ${baselineContent}
 
-KUNDEN LIEFERANTENKODEX (Zu vergleichen):
+KUNDENKODEX (Was der Kunde von mir als Lieferant fordert):
 ${comparisonContent}
 
-Liefere eine umfassende Lückenanalyse im JSON-Format mit dieser Struktur:
+Identifiziere alle Anforderungen, die der KUNDE stellt, die in MEINEM EIGENEN Kodex entweder FEHLEN oder SCHWÄCHER formuliert sind.
+
+Liefere eine umfassende Gap-Analyse im JSON-Format mit dieser Struktur:
 {
-  "overallCompliance": <Prozentsatz 0-100>,
+  "overallCompliance": <Prozentsatz 0-100, wie gut mein Kodex die Kundenanforderungen erfüllt>,
   "gaps": [
     {
       "section": "Abschnittsname",
-      "customerText": "Text aus Kundenkodex",
-      "baselineText": "Text aus Baseline-Kodex",
-      "recommendation": "Wie diese Lücke zu beheben ist",
+      "customerText": "Konkrete Anforderung aus dem Kundenkodex",
+      "baselineText": "Was ich in meinem eigenen Kodex habe (oder 'Nicht vorhanden')",
+      "recommendation": "Was ich tun sollte, um diese Lücke zu schließen",
       "severity": "KRITISCH|MITTEL|GERING",
-      "explanation": "Kurze Erklärung, warum dies ein Problem ist"
+      "explanation": "Warum dies ein Gap ist und welche Risiken bestehen"
     }
   ]
 }`;

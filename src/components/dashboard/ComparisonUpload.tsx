@@ -31,8 +31,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
     if (!isPDF && !isTXT) {
       toast({
-        title: "Unsupported file type",
-        description: "Please upload a PDF or plain text (.txt) file.",
+        title: "Nicht unterstützter Dateityp",
+        description: "Bitte laden Sie eine PDF- oder TXT-Datei hoch.",
         variant: "destructive",
       });
       return;
@@ -58,8 +58,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (!text || text.trim().length === 0) {
         toast({
-          title: "Empty document",
-          description: "The file appears to be empty or contains no extractable text.",
+          title: "Leeres Dokument",
+          description: "Die Datei scheint leer zu sein oder enthält keinen extrahierbaren Text.",
           variant: "destructive",
         });
         setLoading(false);
@@ -73,14 +73,14 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       }
 
       toast({
-        title: "File uploaded",
-        description: isPDF ? "Text extracted from PDF successfully." : "Text file loaded successfully.",
+        title: "Datei hochgeladen",
+        description: isPDF ? "Text wurde erfolgreich aus PDF extrahiert." : "Textdatei erfolgreich geladen.",
       });
     } catch (error) {
       console.error("File upload error:", error);
       toast({
-        title: "Upload failed",
-        description: "Failed to process the file. Please try again.",
+        title: "Upload fehlgeschlagen",
+        description: "Die Datei konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -91,8 +91,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
   const handleAnalyze = async () => {
     if (!title || !content || !baselineId) {
       toast({
-        title: "Error",
-        description: "Please provide both title and content",
+        title: "Fehler",
+        description: "Bitte geben Sie sowohl Titel als auch Inhalt an",
         variant: "destructive",
       });
       return;
@@ -158,8 +158,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       if (analysisError) throw analysisError;
 
       toast({
-        title: "Analysis complete",
-        description: "Your document has been analyzed successfully",
+        title: "Analyse abgeschlossen",
+        description: "Ihr Dokument wurde erfolgreich analysiert",
       });
 
       onAnalysisComplete(analysis.id);
@@ -171,8 +171,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
     } catch (error: any) {
       console.error("Analysis error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to analyze document",
+        title: "Fehler",
+        description: error.message || "Dokument konnte nicht analysiert werden",
         variant: "destructive",
       });
     } finally {
@@ -184,15 +184,15 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
     <Card className="p-6 max-w-4xl mx-auto">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Upload Customer Supplier Code</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Kundenkodex hochladen</h2>
           <p className="text-muted-foreground">
-            Upload the customer's supplier code to compare against your baseline.
+            Laden Sie den Lieferantenkodex Ihres Kunden hoch. Die App prüft, welche Anforderungen der Kunde stellt, die Sie noch nicht in Ihrem Kodex haben.
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="comparison-file">Upload Document (Optional)</Label>
+            <Label htmlFor="comparison-file">Dokument hochladen (Optional)</Label>
             <div className="flex items-center gap-4">
               <Input
                 id="comparison-file"
@@ -212,20 +212,20 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="comparison-title">Document Title</Label>
+            <Label htmlFor="comparison-title">Dokumenttitel</Label>
             <Input
               id="comparison-title"
-              placeholder="e.g., Customer ABC Supplier Code"
+              placeholder="z.B. Kunde ABC Lieferantenkodex"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="comparison-content">Content</Label>
+            <Label htmlFor="comparison-content">Inhalt</Label>
             <Textarea
               id="comparison-content"
-              placeholder="Paste or type the customer's supplier code content here..."
+              placeholder="Fügen Sie den Kundenkodex hier ein..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[300px] font-mono text-sm"
@@ -236,12 +236,12 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Analyzing...
+                Wird analysiert...
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Analyze Document
+                Dokument analysieren
               </>
             )}
           </Button>
