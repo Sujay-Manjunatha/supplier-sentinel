@@ -6,15 +6,14 @@ import { Shield, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import BaselineSetup from "@/components/dashboard/BaselineSetup";
+import DataFoundation from "@/components/dashboard/DataFoundation";
 import ComparisonUpload from "@/components/dashboard/ComparisonUpload";
 import AnalysisResults from "@/components/dashboard/AnalysisResults";
-import AcceptedRequirements from "@/components/dashboard/AcceptedRequirements";
 import MyProcesses from "@/components/dashboard/MyProcesses";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
-  const [activeSection, setActiveSection] = useState("baseline");
+  const [activeSection, setActiveSection] = useState("data-foundation");
   const [baselineId, setBaselineId] = useState<string | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [comparisonDocumentId, setComparisonDocumentId] = useState<string | null>(null);
@@ -107,15 +106,13 @@ const Dashboard = () => {
 
           {/* Main Content */}
           <main className="flex-1 container mx-auto px-4 py-8">
-            {activeSection === "baseline" && (
-              <BaselineSetup 
-                userId={user.id} 
+            {activeSection === "data-foundation" && (
+              <DataFoundation
+                userId={user.id}
                 onBaselineCreated={handleBaselineCreated}
                 existingBaselineId={baselineId}
               />
             )}
-
-            {activeSection === "accepted" && <AcceptedRequirements />}
 
             {activeSection === "processes" && <MyProcesses />}
 

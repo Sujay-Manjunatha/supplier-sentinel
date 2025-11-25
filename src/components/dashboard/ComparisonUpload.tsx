@@ -66,16 +66,15 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         return;
       }
 
-      setContent(text);
-      setFileName(file.name);
-      if (!title) {
-        setTitle(file.name.replace(/\.[^.]+$/, ""));
-      }
+      const generatedTitle = file.name.replace(/\.[^.]+$/, "");
 
       toast({
         title: "Datei hochgeladen",
-        description: isPDF ? "Text wurde erfolgreich aus PDF extrahiert." : "Textdatei erfolgreich geladen.",
+        description: "Analyse wird gestartet...",
       });
+
+      // Auto-start analysis immediately
+      await startAnalysis(text, generatedTitle, file.name);
     } catch (error) {
       console.error("File upload error:", error);
       toast({
@@ -83,22 +82,21 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         description: "Die Datei konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!title || !content || !baselineId) {
+  const startAnalysis = async (content: string, title: string, fileName: string) => {
+
+    if (!baselineId) {
       toast({
         title: "Fehler",
-        description: "Bitte geben Sie sowohl Titel als auch Inhalt an",
+        description: "Kein Kodex als Datengrundlage gefunden",
         variant: "destructive",
       });
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
 
     try {
       // Get baseline document
@@ -163,11 +161,6 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       });
 
       onAnalysisComplete(analysis.id, comparisonDoc.id);
-
-      // Reset form
-      setTitle("");
-      setContent("");
-      setFileName("");
     } catch (error: any) {
       console.error("Analysis error:", error);
       toast({
@@ -186,65 +179,32 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Kundenkodex hochladen</h2>
           <p className="text-muted-foreground">
-            Laden Sie den Lieferantenkodex Ihres Kunden hoch. Die App prüft, welche Anforderungen der Kunde stellt, die Sie noch nicht in Ihrem Kodex haben.
+            Laden Sie den Lieferantenkodex Ihres Kunden hoch. Die Analyse startet automatisch nach dem Upload.
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="comparison-file">Dokument hochladen (Optional)</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="comparison-file"
-                type="file"
-                accept=".txt,.pdf"
-                onChange={handleFileUpload}
-                disabled={loading}
-                className="flex-1"
-              />
-              {fileName && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>{fileName}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="comparison-title">Dokumenttitel</Label>
+            <Label htmlFor="comparison-file">Dokument hochladen (PDF oder TXT)</Label>
             <Input
-              id="comparison-title"
-              placeholder="z.B. Kunde ABC Lieferantenkodex"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              id="comparison-file"
+              type="file"
+              accept=".txt,.pdf"
+              onChange={handleFileUpload}
+              disabled={loading}
+              className="w-full"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comparison-content">Inhalt</Label>
-            <Textarea
-              id="comparison-content"
-              placeholder="Fügen Sie den Kundenkodex hier ein..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[300px] font-mono text-sm"
-            />
-          </div>
-
-          <Button onClick={handleAnalyze} disabled={loading} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Wird analysiert...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Dokument analysieren
-              </>
-            )}
-          </Button>
+          {loading && (
+            <div className="flex items-center justify-center gap-3 p-8 bg-muted/50 rounded-lg">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="text-center">
+                <p className="font-semibold">Dokument wird analysiert...</p>
+                <p className="text-sm text-muted-foreground">Dies kann einige Sekunden dauern</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Card>
