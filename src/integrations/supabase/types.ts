@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      accepted_requirements: {
+        Row: {
+          accepted_at: string
+          id: string
+          notes: string | null
+          requirement_hash: string
+          requirement_text: string
+          section: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          id?: string
+          notes?: string | null
+          requirement_hash: string
+          requirement_text: string
+          section: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          id?: string
+          notes?: string | null
+          requirement_hash?: string
+          requirement_text?: string
+          section?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       baseline_documents: {
         Row: {
           content: string

@@ -34,6 +34,7 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
   const fetchAnalysis = async () => {
     setLoading(true);
     try {
+      // Load analysis
       const { data, error } = await supabase
         .from("gap_analyses")
         .select("*")
@@ -41,7 +42,47 @@ const AnalysisResults = ({ analysisId }: AnalysisResultsProps) => {
         .single();
 
       if (error) throw error;
-      setAnalysis(data);
+
+      // Load accepted requirements
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: acceptedReqs } = await supabase
+          .from("accepted_requirements")
+          .select("requirement_hash")
+          .eq("user_id", user.id);
+
+        const acceptedHashes = new Set(
+          acceptedReqs?.map(r => r.requirement_hash) || []
+        );
+
+        // Helper function to hash text
+        const hashText = (text: string): string => {
+          let hash = 0;
+          for (let i = 0; i < text.length; i++) {
+            const char = text.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+          }
+          return hash.toString();
+        };
+
+        // Filter out gaps that match accepted requirements
+        const gaps = (data.gaps as any[]) || [];
+        const filteredGaps = gaps.filter(gap => {
+          const gapHash = hashText(gap.customerText);
+          return !acceptedHashes.has(gapHash);
+        });
+
+        // Update the analysis data with filtered gaps
+        setAnalysis({
+          ...data,
+          gaps: filteredGaps,
+          total_gaps: filteredGaps.length,
+        });
+      } else {
+        setAnalysis(data);
+      }
+      
       setPhase("initial");
       setCurrentIndex(0);
       setDecisions({});
