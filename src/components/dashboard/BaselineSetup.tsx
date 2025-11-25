@@ -45,18 +45,39 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target?.result as string;
-        setContent(text);
-        setFileName(file.name);
-        if (!title) {
-          setTitle(file.name.replace(/\.[^.]+$/, ""));
-        }
-      };
-      reader.readAsText(file);
+    if (!file) return;
+
+    // Only support real text files for now to avoid binary/PDF issues
+    if (file.type && file.type !== "text/plain") {
+      toast({
+        title: "Unsupported file type",
+        description: "Please upload a plain text (.txt) file or paste the content manually.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+
+      // Guard against binary content (e.g. PDFs) that slipped through
+      if (text.includes("\u0000")) {
+        toast({
+          title: "Unsupported file content",
+          description: "This file looks like a binary document (e.g. PDF). Please convert it to text first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setContent(text);
+      setFileName(file.name);
+      if (!title) {
+        setTitle(file.name.replace(/\.[^.]+$/, ""));
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleSave = async () => {
@@ -174,7 +195,7 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
               <Input
                 id="baseline-file"
                 type="file"
-                accept=".txt,.doc,.docx,.pdf"
+                accept=".txt"
                 onChange={handleFileUpload}
                 className="flex-1"
               />
