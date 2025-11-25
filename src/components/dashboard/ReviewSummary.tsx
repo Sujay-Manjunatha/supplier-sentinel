@@ -16,20 +16,22 @@ interface Gap {
   aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
   reasoning: string;
   risksIfAccepted: string;
-  risksIfRejected: string;
 }
 
 interface ReviewSummaryProps {
   gaps: Gap[];
   decisions: Record<number, 'accept' | 'reject'>;
   overallCompliance: number;
+  analysisId: string | null;
+  comparisonDocumentId: string | null;
   onRestart: () => void;
 }
 
-export const ReviewSummary = ({ gaps, decisions, overallCompliance, onRestart }: ReviewSummaryProps) => {
+export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, comparisonDocumentId, onRestart }: ReviewSummaryProps) => {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailTemplate, setEmailTemplate] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const acceptedCount = Object.values(decisions).filter(d => d === 'accept').length;
   const rejectedCount = Object.values(decisions).filter(d => d === 'reject').length;
@@ -66,6 +68,74 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, onRestart }:
   const copyToClipboard = () => {
     navigator.clipboard.writeText(emailTemplate);
     toast.success("In Zwischenablage kopiert");
+  };
+
+  const saveEvaluation = async () => {
+    if (!analysisId || !comparisonDocumentId) {
+      toast.error("Fehlende Analyse-Daten");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Nicht authentifiziert");
+        return;
+      }
+
+      // Get comparison document to extract customer name
+      const { data: compDoc } = await supabase
+        .from("comparison_documents")
+        .select("content, title")
+        .eq("id", comparisonDocumentId)
+        .single();
+
+      let customerName = "Unbekanntes Unternehmen";
+      let title = "Lieferantenkodex";
+
+      if (compDoc) {
+        // Try to extract company name using edge function
+        const { data: extractData, error: extractError } = await supabase.functions.invoke('extract-company-name', {
+          body: { documentContent: compDoc.content }
+        });
+
+        if (!extractError && extractData?.companyName) {
+          customerName = extractData.companyName;
+        }
+
+        title = `${customerName}-Lieferantenkodex`;
+      }
+
+      const criticalGaps = rejectedGaps.filter(g => g.severity === 'KRITISCH').length;
+      const mediumGaps = rejectedGaps.filter(g => g.severity === 'MITTEL').length;
+      const lowGaps = rejectedGaps.filter(g => g.severity === 'GERING').length;
+
+      const { error } = await supabase
+        .from("completed_evaluations")
+        .insert({
+          user_id: user.id,
+          comparison_document_id: comparisonDocumentId,
+          customer_name: customerName,
+          title: title,
+          gaps: gaps as any,
+          decisions: decisions as any,
+          email_template: emailTemplate || null,
+          overall_compliance: overallCompliance,
+          critical_gaps: criticalGaps,
+          medium_gaps: mediumGaps,
+          low_gaps: lowGaps,
+        });
+
+      if (error) throw error;
+
+      toast.success("Bewertung erfolgreich gespeichert!");
+    } catch (error) {
+      console.error('Error saving evaluation:', error);
+      toast.error("Fehler beim Speichern der Bewertung");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const criticalRejected = rejectedGaps.filter(g => g.severity === 'KRITISCH').length;
@@ -200,6 +270,26 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, onRestart }:
                   Neu bewerten
                 </Button>
               </div>
+
+              <Button 
+                onClick={saveEvaluation} 
+                variant="secondary" 
+                className="w-full"
+                disabled={isSaving}
+                size="lg"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Speichere...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Bewertung abschließen und speichern
+                  </>
+                )}
+              </Button>
             </div>
           </>
         )}

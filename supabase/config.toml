@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-email]
 verify_jwt = false
+
+[functions.extract-company-name]
+verify_jwt = false
