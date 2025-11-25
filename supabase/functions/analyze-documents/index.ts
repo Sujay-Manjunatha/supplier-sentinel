@@ -9,8 +9,10 @@ const corsHeaders = {
 interface Gap {
   section: string;
   customerText: string;
+  gapType: 'ZUSÄTZLICH' | 'STRENGER' | 'WIDERSPRUCH';
   severity: 'KRITISCH' | 'MITTEL' | 'GERING';
   aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  ownCodexCoverage: string;
   reasoning: string;
   risksIfAccepted: string;
 }
@@ -34,64 +36,75 @@ serve(async (req) => {
     const systemPrompt = `Du bist ein Experte für Compliance-Analysen aus der Perspektive eines LIEFERANTEN.
 
 KONTEXT:
-- "MEIN KODEX" = Der eigene Lieferantenkodex des Benutzers (als Information/Hintergrund)
+- "MEIN KODEX" = Der eigene Lieferantenkodex des Benutzers
 - "KUNDENKODEX" = Der Lieferantenkodex, den der Kunde vom Lieferanten fordert
 
 DEINE AUFGABE:
-Analysiere jede Anforderung aus dem KUNDENKODEX und bewerte:
-1. Sollte der Lieferant diese Anforderung akzeptieren?
-2. Welche Risiken entstehen bei Akzeptanz?
-3. Welche Risiken entstehen bei Ablehnung?
+Vergleiche den KUNDENKODEX mit MEIN KODEX und identifiziere NUR echte Abweichungen und Zusatzanforderungen:
 
-Der eigene Kodex dient nur als Hintergrund-Information. Bewerte jede Kundenanforderung unabhängig.
+1. **ZUSÄTZLICHE** Anforderungen: Im Kundenkodex gefordert, aber NICHT im eigenen Kodex abgedeckt
+2. **STRENGERE** Anforderungen: Im Kundenkodex strenger/weitreichender formuliert als im eigenen Kodex
+3. **WIDERSPRÜCHLICHE** Anforderungen: Im Kundenkodex anders/gegenteilig formuliert als im eigenen Kodex
+
+WICHTIG - KEINE Gaps für:
+❌ Anforderungen die bereits gleichwertig im eigenen Kodex erfüllt sind
+❌ Standard-Anforderungen die beide Kodizes in ähnlicher Form teilen
+❌ Anforderungen die der eigene Kodex sogar übertrifft
+
+NUR ECHTE LÜCKEN UND ABWEICHUNGEN IDENTIFIZIEREN!
+
+SCHWEREGRAD (bezogen auf das RISIKO für den Lieferanten bei Nicht-Erfüllung):
+- KRITISCH: Erhebliches Risiko (rechtlich, finanziell, Reputationsschaden, Geschäftsbeziehung gefährdet)
+- MITTEL: Moderate Risiken oder Aufwände bei Umsetzung
+- GERING: Geringes Risiko, einfach umzusetzen, geringe Kosten
 
 BEWERTUNGSKRITERIEN:
-- AKZEPTIEREN: Anforderung ist vernünftig, branchenüblich, keine erheblichen Risiken
-- ABLEHNEN: Anforderung ist unrealistisch, zu kostspielig, rechtlich problematisch, oder wirtschaftlich unzumutbar
-- PRÜFEN: Anforderung erfordert weitere Klärung, Verhandlung oder individuelle Prüfung
-
-SCHWEREGRAD-KLASSIFIZIERUNG:
-- KRITISCH: Rechtliche/regulatorische Risiken, große Haftung, grundlegende ethische Verstöße
-- MITTEL: Wichtige betriebliche/ethische Bedenken, moderate Kosten
-- GERING: Kleinere organisatorische Anpassungen, geringe Kosten
+- AKZEPTIEREN: Anforderung ist vernünftig, umsetzbar, geringe Risiken
+- ABLEHNEN: Anforderung ist unrealistisch, zu kostspielig, rechtlich/wirtschaftlich problematisch
+- PRÜFEN: Anforderung erfordert weitere Klärung oder Verhandlung
 
 AUSGABEFORMAT für jeden Gap:
 - section: Abschnitts-/Themenname
-- customerText: Die konkrete Anforderung des Kunden
+- customerText: Die konkrete Anforderung aus dem Kundenkodex
+- gapType: ZUSÄTZLICH | STRENGER | WIDERSPRUCH
 - severity: KRITISCH | MITTEL | GERING
 - aiRecommendation: AKZEPTIEREN | ABLEHNEN | PRÜFEN
-- reasoning: Detaillierte Begründung deiner Empfehlung (2-4 Sätze)
-- risksIfAccepted: Konkrete Risiken bei Akzeptanz (rechtlich, operativ, finanziell). Wenn es keine nennenswerten Risiken gibt, schreibe "Keine wesentlichen Risiken identifiziert."
+- ownCodexCoverage: Was steht im eigenen Kodex zu diesem Thema? (Falls nichts: "Nicht abgedeckt")
+- reasoning: Detaillierte Begründung deiner Empfehlung (2-4 Sätze) - erkläre warum dies ein Gap ist
+- risksIfAccepted: Konkrete Risiken bei Akzeptanz (rechtlich, operativ, finanziell)
 
 WICHTIG: 
 - Alle Antworten auf Deutsch
-- Sei präzise und praxisorientiert
-- Berücksichtige reale Geschäftsbeziehungen zwischen Lieferant und Kunde
-- Fokussiere auf machbare, realistische Einschätzungen`;
+- Sei streng bei der Gap-Identifikation - nur echte Lücken melden
+- Qualität vor Quantität - lieber 5 echte Gaps als 20 irrelevante`;
 
     const userPrompt = `Analysiere diese beiden Lieferantenkodizes aus Lieferantenperspektive:
 
-MEIN EIGENER LIEFERANTENKODEX (nur als Hintergrund-Information):
+MEIN EIGENER LIEFERANTENKODEX:
 ${baselineContent}
 
 KUNDENKODEX (Was der Kunde von mir als Lieferant fordert):
 ${comparisonContent}
 
-Bewerte jede Anforderung aus dem KUNDENKODEX:
-- Sollte ich als Lieferant diese Anforderung akzeptieren?
-- Welche Risiken entstehen bei Akzeptanz?
-- Welche Risiken entstehen bei Ablehnung?
+Identifiziere NUR echte Abweichungen und Zusatzanforderungen:
+- Welche Anforderungen im Kundenkodex sind NICHT oder UNZUREICHEND im eigenen Kodex abgedeckt?
+- Welche Anforderungen im Kundenkodex sind STRENGER als im eigenen Kodex?
+- Welche Anforderungen WIDERSPRECHEN dem eigenen Kodex?
 
-Liefere eine umfassende Analyse im JSON-Format mit dieser Struktur:
+IGNORIERE Anforderungen die bereits gleichwertig erfüllt sind!
+
+Liefere eine fokussierte Analyse im JSON-Format mit dieser Struktur:
 {
   "gaps": [
     {
       "section": "Abschnittsname",
       "customerText": "Konkrete Anforderung aus dem Kundenkodex",
+      "gapType": "ZUSÄTZLICH|STRENGER|WIDERSPRUCH",
       "severity": "KRITISCH|MITTEL|GERING",
       "aiRecommendation": "AKZEPTIEREN|ABLEHNEN|PRÜFEN",
-      "reasoning": "Detaillierte Begründung der Empfehlung",
-      "risksIfAccepted": "Konkrete Risiken bei Akzeptanz dieser Anforderung"
+      "ownCodexCoverage": "Was steht im eigenen Kodex dazu?",
+      "reasoning": "Warum ist dies ein Gap? Was fehlt oder weicht ab?",
+      "risksIfAccepted": "Konkrete Risiken bei Akzeptanz"
     }
   ]
 }`;
