@@ -177,11 +177,7 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, 
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-muted rounded-lg">
-            <div className="text-2xl font-bold text-foreground">{overallCompliance}%</div>
-            <div className="text-sm text-muted-foreground">Übereinstimmung</div>
-          </div>
+        <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold text-primary">{acceptedCount}</div>
             <div className="text-sm text-muted-foreground">Akzeptiert</div>

@@ -343,6 +343,39 @@ const GapReviewWizard = ({
                 </Button>
               </div>
 
+              {/* Navigation Buttons - direkt unter Entscheidungs-Buttons */}
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  onClick={onPrevious}
+                  variant="outline"
+                  disabled={currentIndex === 0}
+                  size="lg"
+                >
+                  <ChevronLeft className="h-5 w-5 mr-2" />
+                  Zurück
+                </Button>
+
+                {!isLastGap ? (
+                  <Button
+                    onClick={onNext}
+                    variant={currentDecision ? "default" : "outline"}
+                    disabled={!currentDecision}
+                    size="lg"
+                  >
+                    Weiter
+                    <ChevronRight className="h-5 w-5 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleCompleteClick}
+                    size="lg"
+                    className="font-semibold"
+                  >
+                    Bewertung abschließen
+                  </Button>
+                )}
+              </div>
+
               {/* Skip Button */}
               <Button
                 onClick={handleSkip}
@@ -355,39 +388,6 @@ const GapReviewWizard = ({
               </Button>
             </div>
           </Card>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between">
-            <Button
-              onClick={onPrevious}
-              variant="outline"
-              disabled={currentIndex === 0}
-              size="lg"
-            >
-              <ChevronLeft className="h-5 w-5 mr-2" />
-              Zurück
-            </Button>
-
-            {!isLastGap ? (
-              <Button
-                onClick={onNext}
-                variant={currentDecision ? "default" : "outline"}
-                disabled={!currentDecision}
-                size="lg"
-              >
-                Weiter
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleCompleteClick}
-                size="lg"
-                className="font-semibold"
-              >
-                Bewertung abschließen
-              </Button>
-            )}
-          </div>
         </div>
       </div>
 

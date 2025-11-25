@@ -84,7 +84,6 @@ Bewerte jede Anforderung aus dem KUNDENKODEX:
 
 Liefere eine umfassende Analyse im JSON-Format mit dieser Struktur:
 {
-  "overallCompliance": <Prozentsatz 0-100, wie viele Anforderungen realistisch akzeptierbar sind>,
   "gaps": [
     {
       "section": "Abschnittsname",
@@ -92,8 +91,7 @@ Liefere eine umfassende Analyse im JSON-Format mit dieser Struktur:
       "severity": "KRITISCH|MITTEL|GERING",
       "aiRecommendation": "AKZEPTIEREN|ABLEHNEN|PRÜFEN",
       "reasoning": "Detaillierte Begründung der Empfehlung",
-      "risksIfAccepted": "Konkrete Risiken bei Akzeptanz dieser Anforderung",
-      "risksIfRejected": "Konkrete Risiken bei Ablehnung dieser Anforderung"
+      "risksIfAccepted": "Konkrete Risiken bei Akzeptanz dieser Anforderung"
     }
   ]
 }`;
@@ -110,7 +108,7 @@ Liefere eine umfassende Analyse im JSON-Format mit dieser Struktur:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.3,
+        temperature: 0,
         response_format: { type: "json_object" }
       }),
     });
@@ -155,7 +153,7 @@ Liefere eine umfassende Analyse im JSON-Format mit dieser Struktur:
     const lowGaps = gaps.filter(g => g.severity === 'GERING').length;
 
     const result = {
-      overallCompliance: analysisResult.overallCompliance || 0,
+      overallCompliance: 0,
       totalGaps: gaps.length,
       criticalGaps,
       mediumGaps,
