@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.extract-company-name]
 verify_jwt = false
+
+[functions.detect-document-type]
+verify_jwt = false

@@ -304,7 +304,6 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
     <ReviewSummary
       gaps={gaps}
       decisions={decisions}
-      overallCompliance={analysis.overall_compliance_percentage}
       analysisId={analysisId}
       comparisonDocumentId={comparisonDocumentId || analysis.comparison_document_id}
       onRestart={handleRestart}

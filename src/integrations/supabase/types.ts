@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           accepted_at: string
           category: string | null
+          document_type: string
           id: string
           notes: string | null
           requirement_hash: string
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           accepted_at?: string
           category?: string | null
+          document_type?: string
           id?: string
           notes?: string | null
           requirement_hash: string
@@ -38,6 +40,7 @@ export type Database = {
         Update: {
           accepted_at?: string
           category?: string | null
+          document_type?: string
           id?: string
           notes?: string | null
           requirement_hash?: string
@@ -51,6 +54,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          document_type: string
           file_name: string
           id: string
           title: string
@@ -60,6 +64,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          document_type?: string
           file_name: string
           id?: string
           title: string
@@ -69,6 +74,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          document_type?: string
           file_name?: string
           id?: string
           title?: string
@@ -123,6 +129,7 @@ export type Database = {
           critical_gaps: number
           customer_name: string
           decisions: Json
+          document_type: string
           email_template: string | null
           gaps: Json
           id: string
@@ -139,6 +146,7 @@ export type Database = {
           critical_gaps?: number
           customer_name: string
           decisions?: Json
+          document_type?: string
           email_template?: string | null
           gaps?: Json
           id?: string
@@ -155,6 +163,7 @@ export type Database = {
           critical_gaps?: number
           customer_name?: string
           decisions?: Json
+          document_type?: string
           email_template?: string | null
           gaps?: Json
           id?: string
@@ -180,6 +189,7 @@ export type Database = {
           comparison_document_id: string
           created_at: string
           critical_gaps: number
+          document_type: string
           gaps: Json
           id: string
           low_gaps: number
@@ -194,6 +204,7 @@ export type Database = {
           comparison_document_id: string
           created_at?: string
           critical_gaps?: number
+          document_type?: string
           gaps?: Json
           id?: string
           low_gaps?: number
@@ -208,6 +219,7 @@ export type Database = {
           comparison_document_id?: string
           created_at?: string
           critical_gaps?: number
+          document_type?: string
           gaps?: Json
           id?: string
           low_gaps?: number

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Lightbulb, Star, Circle, SkipForward } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Lightbulb, Star, Circle, SkipForward, Copy } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -292,10 +292,23 @@ const GapReviewWizard = ({
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Kundenanforderung
-                  </h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Kundenanforderung
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(currentGap.customerText);
+                        toast.success("In Zwischenablage kopiert");
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Kopieren
+                    </Button>
+                  </div>
                   <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                     {currentGap.customerText}
                   </p>

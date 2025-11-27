@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2, Calendar, TrendingUp } from "lucide-react";
+import { FileText, Trash2, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -157,15 +157,31 @@ export default function MyProcesses() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <AlertCircle className="h-4 w-4 text-destructive" />
                 <div>
-                  <p className="text-2xl font-bold">{evaluation.overall_compliance}%</p>
-                  <p className="text-xs text-muted-foreground">Compliance</p>
+                  <p className="text-2xl font-bold">{evaluation.critical_gaps}</p>
+                  <p className="text-xs text-muted-foreground">Kritische Gaps</p>
                 </div>
               </div>
-              <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <div>
+                  <p className="text-2xl font-bold">{evaluation.medium_gaps}</p>
+                  <p className="text-xs text-muted-foreground">Mittlere Gaps</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-500" />
+                <div>
+                  <p className="text-2xl font-bold">{evaluation.low_gaps}</p>
+                  <p className="text-xs text-muted-foreground">Geringe Gaps</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
                 <p className="text-2xl font-bold text-destructive">{evaluation.critical_gaps}</p>
                 <p className="text-xs text-muted-foreground">Kritisch</p>
               </div>

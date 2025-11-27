@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, FileText, ChevronDown } from "lucide-react";
+import { Trash2, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 interface AcceptedRequirement {
   id: string;
@@ -26,7 +27,11 @@ interface AcceptedRequirement {
   category: string;
 }
 
-const AcceptedRequirements = () => {
+interface AcceptedRequirementsProps {
+  documentType: 'supplier_code' | 'nda';
+}
+
+const AcceptedRequirements = ({ documentType }: AcceptedRequirementsProps) => {
   const [requirements, setRequirements] = useState<AcceptedRequirement[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -34,7 +39,7 @@ const AcceptedRequirements = () => {
 
   useEffect(() => {
     loadRequirements();
-  }, []);
+  }, [documentType]);
 
   const loadRequirements = async () => {
     setLoading(true);
@@ -46,6 +51,7 @@ const AcceptedRequirements = () => {
       .from("accepted_requirements")
       .select("*")
       .eq("user_id", user.id)
+      .eq("document_type", documentType)
       .order("category", { ascending: true })
       .order("accepted_at", { ascending: false });
 
@@ -87,10 +93,55 @@ const AcceptedRequirements = () => {
     setDeleteId(null);
   };
 
+  const inferCategory = (section: string, text: string): string => {
+    const lower = `${section} ${text}`.toLowerCase();
+    
+    if (documentType === 'nda') {
+      // NDA-spezifische Kategorien
+      if (lower.includes('geheimhaltung') || lower.includes('vertraulich') || lower.includes('confidential')) 
+        return 'Geheimhaltungspflichten';
+      if (lower.includes('laufzeit') || lower.includes('dauer') || lower.includes('kündigung')) 
+        return 'Laufzeit & Kündigung';
+      if (lower.includes('rückgabe') || lower.includes('vernichtung') || lower.includes('löschung')) 
+        return 'Rückgabe & Vernichtung';
+      if (lower.includes('weitergabe') || lower.includes('offenlegung') || lower.includes('disclosure')) 
+        return 'Weitergabe & Offenlegung';
+      if (lower.includes('sanktion') || lower.includes('vertragsstrafe') || lower.includes('haftung')) 
+        return 'Sanktionen & Haftung';
+      if (lower.includes('ausnahme') || lower.includes('ausgenommen')) 
+        return 'Ausnahmen';
+      return 'Allgemeine Bestimmungen';
+    } else {
+      // Lieferantenkodex-Kategorien
+      if (lower.includes('arbeit') || lower.includes('beschäft') || lower.includes('arbeitszeit')) 
+        return 'Arbeitsbedingungen';
+      if (lower.includes('mensch') || lower.includes('kinderarbeit') || lower.includes('zwangsarbeit')) 
+        return 'Menschenrechte';
+      if (lower.includes('umwelt') || lower.includes('emission') || lower.includes('ressource') || lower.includes('nachhaltig')) 
+        return 'Umweltschutz';
+      if (lower.includes('korruption') || lower.includes('bestechung') || lower.includes('interessenkonflikt')) 
+        return 'Anti-Korruption';
+      if (lower.includes('gesundheit') || lower.includes('sicherheit') || lower.includes('arbeitsschutz')) 
+        return 'Gesundheit & Sicherheit';
+      if (lower.includes('daten') || lower.includes('information') || lower.includes('geistiges eigentum')) 
+        return 'Datenschutz & IP';
+      if (lower.includes('lieferkette') || lower.includes('subunternehmer') || lower.includes('unterlieferant')) 
+        return 'Lieferkette';
+      if (lower.includes('audit') || lower.includes('prüf') || lower.includes('dokumentation') || lower.includes('bericht')) 
+        return 'Compliance & Monitoring';
+      return 'Allgemein';
+    }
+  };
+
   const groupByCategory = () => {
     const grouped: Record<string, AcceptedRequirement[]> = {};
     requirements.forEach((req) => {
-      const category = req.category || 'Allgemein';
+      // Try to infer better category if it's "Allgemein"
+      let category = req.category;
+      if (!category || category === 'Allgemein') {
+        category = inferCategory(req.section, req.requirement_text);
+      }
+      
       if (!grouped[category]) {
         grouped[category] = [];
       }
@@ -100,11 +151,7 @@ const AcceptedRequirements = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Lädt...</div>
-      </div>
-    );
+    return <LoadingSpinner text="Lade akzeptierte Punkte..." />;
   }
 
   const groupedRequirements = groupByCategory();
