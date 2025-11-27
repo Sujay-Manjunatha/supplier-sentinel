@@ -23,13 +23,12 @@ interface Gap {
 interface ReviewSummaryProps {
   gaps: Gap[];
   decisions: Record<number, 'accept' | 'reject'>;
-  overallCompliance: number;
   analysisId: string | null;
   comparisonDocumentId: string | null;
   onRestart: () => void;
 }
 
-export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, comparisonDocumentId, onRestart }: ReviewSummaryProps) => {
+export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentId, onRestart }: ReviewSummaryProps) => {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailTemplate, setEmailTemplate] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -124,7 +123,7 @@ export const ReviewSummary = ({ gaps, decisions, overallCompliance, analysisId, 
           gaps: gaps as any,
           decisions: decisions as any,
           email_template: emailTemplate || null,
-          overall_compliance: overallCompliance,
+          overall_compliance: 0,
           critical_gaps: criticalGaps,
           medium_gaps: mediumGaps,
           low_gaps: lowGaps,

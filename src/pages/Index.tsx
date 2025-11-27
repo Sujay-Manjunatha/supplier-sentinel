@@ -10,18 +10,18 @@ const Index = () => {
   const features = [
     {
       icon: FileText,
-      title: "Document Upload",
-      description: "Upload your baseline supplier code and compare it with customer documents"
+      title: "Dokument-Upload",
+      description: "Laden Sie Ihre Referenzdokumente hoch und vergleichen Sie diese mit Kundendokumenten"
     },
     {
       icon: BarChart3,
-      title: "AI Analysis",
-      description: "Semantic comparison powered by advanced AI to identify meaningful gaps"
+      title: "KI-Analyse",
+      description: "Semantischer Vergleich durch fortschrittliche KI zur Identifizierung bedeutsamer Lücken"
     },
     {
       icon: Shield,
-      title: "Compliance Dashboard",
-      description: "Visual insights with severity classification and actionable recommendations"
+      title: "Compliance-Dashboard",
+      description: "Visuelle Einblicke mit Schweregrad-Klassifizierung und umsetzbaren Empfehlungen"
     }
   ];
 
@@ -32,10 +32,10 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Supplier Code GAP Analysis</h1>
+            <h1 className="text-2xl font-bold text-foreground">Gap Analyse</h1>
           </div>
           <Button variant="outline" onClick={() => navigate('/login')}>
-            Sign In
+            Anmelden
           </Button>
         </div>
       </header>
@@ -44,18 +44,18 @@ const Index = () => {
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-3xl mx-auto space-y-6">
           <h2 className="text-5xl font-bold text-foreground leading-tight">
-            Analyze Supplier Codes with
-            <span className="text-primary"> AI-Powered Precision</span>
+            Analysieren Sie Dokumente mit
+            <span className="text-primary"> KI-gestützter Präzision</span>
           </h2>
           <p className="text-xl text-muted-foreground">
-            Compare supplier codes semantically, identify compliance gaps, and get actionable recommendations instantly.
+            Vergleichen Sie Lieferantenkodizes oder NDAs semantisch, identifizieren Sie Compliance-Lücken und erhalten Sie sofort umsetzbare Empfehlungen.
           </p>
           <div className="flex gap-4 justify-center pt-6">
             <Button size="lg" onClick={() => navigate('/signup')} className="text-lg px-8">
-              Get Started
+              Jetzt starten
             </Button>
             <Button size="lg" variant="outline" onClick={() => navigate('/login')} className="text-lg px-8">
-              Sign In
+              Anmelden
             </Button>
           </div>
         </div>
@@ -84,15 +84,15 @@ const Index = () => {
       {/* How It Works */}
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
-          <h3 className="text-3xl font-bold text-center mb-12 text-foreground">How It Works</h3>
+          <h3 className="text-3xl font-bold text-center mb-12 text-foreground">So funktioniert's</h3>
           <div className="space-y-8">
             <div className="flex gap-6 items-start">
               <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
                 1
               </div>
               <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">Upload Your Baseline</h4>
-                <p className="text-muted-foreground">Set your supplier code as the reference document for all future comparisons.</p>
+                <h4 className="text-xl font-semibold mb-2 text-foreground">Basisdokument hochladen</h4>
+                <p className="text-muted-foreground">Hinterlegen Sie Ihren Lieferantenkodex oder NDA-Template als Referenz.</p>
               </div>
             </div>
             <div className="flex gap-6 items-start">
@@ -100,8 +100,8 @@ const Index = () => {
                 2
               </div>
               <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">Compare Customer Codes</h4>
-                <p className="text-muted-foreground">Upload customer supplier codes for semantic analysis and gap identification.</p>
+                <h4 className="text-xl font-semibold mb-2 text-foreground">Kundendokumente vergleichen</h4>
+                <p className="text-muted-foreground">Laden Sie Kundendokumente für semantische Analyse und Gap-Identifikation hoch.</p>
               </div>
             </div>
             <div className="flex gap-6 items-start">
@@ -109,8 +109,8 @@ const Index = () => {
                 3
               </div>
               <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">Get Insights</h4>
-                <p className="text-muted-foreground">Review detailed gap analysis with severity levels and actionable recommendations.</p>
+                <h4 className="text-xl font-semibold mb-2 text-foreground">Erkenntnisse gewinnen</h4>
+                <p className="text-muted-foreground">Erhalten Sie detaillierte Gap-Analysen mit Schweregrad und umsetzbaren Empfehlungen.</p>
               </div>
             </div>
           </div>
@@ -120,10 +120,10 @@ const Index = () => {
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20">
         <Card className="p-12 text-center bg-primary text-primary-foreground">
-          <h3 className="text-3xl font-bold mb-4">Ready to streamline your compliance analysis?</h3>
-          <p className="text-lg mb-8 opacity-90">Start analyzing supplier codes today with AI-powered precision.</p>
+          <h3 className="text-3xl font-bold mb-4">Bereit, Ihre Compliance-Analyse zu optimieren?</h3>
+          <p className="text-lg mb-8 opacity-90">Starten Sie noch heute mit der KI-gestützten Dokumentenanalyse.</p>
           <Button size="lg" variant="secondary" onClick={() => navigate('/signup')} className="text-lg px-8">
-            Create Free Account
+            Kostenloses Konto erstellen
           </Button>
         </Card>
       </section>
@@ -131,7 +131,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t bg-card/50 backdrop-blur-sm py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; 2025 Supplier Code GAP Analysis. All rights reserved.</p>
+          <p>&copy; 2025 Gap Analyse. Alle Rechte vorbehalten.</p>
         </div>
       </footer>
     </div>

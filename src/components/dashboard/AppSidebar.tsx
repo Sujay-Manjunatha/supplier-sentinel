@@ -30,8 +30,9 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
               <SidebarMenuButton
                 onClick={() => onSectionChange("data-foundation")}
                 isActive={activeSection === "data-foundation"}
+                className="text-primary text-base py-3"
               >
-                <Database className="h-4 w-4" />
+                <Database className="h-5 w-5" />
                 {open && <span>Datengrundlage</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -41,8 +42,9 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
               <SidebarMenuButton
                 onClick={() => onSectionChange("processes")}
                 isActive={activeSection === "processes"}
+                className="text-primary text-base py-3"
               >
-                <FolderOpen className="h-4 w-4" />
+                <FolderOpen className="h-5 w-5" />
                 {open && <span>Meine Vorgänge</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -52,8 +54,9 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
               <SidebarMenuButton
                 onClick={() => onSectionChange("new-process")}
                 isActive={activeSection === "new-process"}
+                className="text-primary text-base py-3"
               >
-                <Upload className="h-4 w-4" />
+                <Upload className="h-5 w-5" />
                 {open && <span>Neuer Vorgang</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>

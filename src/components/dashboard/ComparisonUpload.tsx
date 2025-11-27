@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, Loader2, Trash2 } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import extract from "react-pdftotext";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 interface ComparisonUploadProps {
   userId: string;
@@ -16,9 +16,6 @@ interface ComparisonUploadProps {
 }
 
 const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: ComparisonUploadProps) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -44,10 +41,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       let text: string;
 
       if (isPDF) {
-        // Extract text from PDF
         text = await extract(file);
       } else {
-        // Read text file
         text = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (event) => resolve(event.target?.result as string);
@@ -73,7 +68,6 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         description: "Analyse wird gestartet...",
       });
 
-      // Auto-start analysis immediately
       await startAnalysis(text, generatedTitle, file.name);
     } catch (error) {
       console.error("File upload error:", error);
@@ -87,39 +81,51 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
   };
 
   const startAnalysis = async (content: string, title: string, fileName: string) => {
-
-    if (!baselineId) {
-      toast({
-        title: "Fehler",
-        description: "Kein Kodex als Datengrundlage gefunden",
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
     try {
-      // Get baseline document
+      // Step 1: Detect document type
+      const { data: typeData, error: typeError } = await supabase.functions.invoke('detect-document-type', {
+        body: { content }
+      });
+
+      if (typeError) throw typeError;
+
+      const documentType = typeData.documentType as 'supplier_code' | 'nda';
+      
+      console.log('Detected document type:', documentType);
+
+      // Step 2: Get matching baseline document
       const { data: baseline, error: baselineError } = await supabase
         .from("baseline_documents")
-        .select("content")
-        .eq("id", baselineId)
-        .single();
+        .select("*")
+        .eq("user_id", userId)
+        .eq("document_type", documentType)
+        .maybeSingle();
 
       if (baselineError) throw baselineError;
 
-      // Get accepted requirements for this user
+      if (!baseline) {
+        toast({
+          title: "Fehler",
+          description: `Kein ${documentType === 'nda' ? 'NDA-Template' : 'Lieferantenkodex'} als Datengrundlage gefunden. Bitte hinterlegen Sie zuerst ein Basisdokument.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: Get accepted requirements for this document type
       const { data: acceptedRequirements } = await supabase
         .from("accepted_requirements")
         .select("requirement_text, section, category")
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("document_type", documentType);
 
-      // Save comparison document
+      // Step 4: Save comparison document
       const { data: comparisonDoc, error: comparisonError } = await supabase
         .from("comparison_documents")
         .insert({
           user_id: userId,
-          baseline_document_id: baselineId,
+          baseline_document_id: baseline.id,
           title,
           content,
           file_name: fileName || "manual-entry.txt",
@@ -129,7 +135,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (comparisonError) throw comparisonError;
 
-      // Call edge function for AI analysis
+      // Step 5: Call edge function for AI analysis
       const { data: analysisResult, error: functionError } = await supabase.functions.invoke(
         "analyze-documents",
         {
@@ -143,19 +149,20 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (functionError) throw functionError;
 
-      // Save analysis results
+      // Step 6: Save analysis results
       const { data: analysis, error: analysisError } = await supabase
         .from("gap_analyses")
         .insert({
           user_id: userId,
-          baseline_document_id: baselineId,
+          baseline_document_id: baseline.id,
           comparison_document_id: comparisonDoc.id,
-          overall_compliance_percentage: analysisResult.overallCompliance,
+          overall_compliance_percentage: 0,
           total_gaps: analysisResult.totalGaps,
           critical_gaps: analysisResult.criticalGaps,
           medium_gaps: analysisResult.mediumGaps,
           low_gaps: analysisResult.lowGaps,
           gaps: analysisResult.gaps,
+          document_type: documentType,
         })
         .select()
         .single();
@@ -164,7 +171,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       toast({
         title: "Analyse abgeschlossen",
-        description: "Ihr Dokument wurde erfolgreich analysiert",
+        description: `Ihr ${documentType === 'nda' ? 'NDA' : 'Dokument'} wurde erfolgreich analysiert`,
       });
 
       onAnalysisComplete(analysis.id, comparisonDoc.id);
@@ -180,13 +187,17 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
     }
   };
 
+  if (loading) {
+    return <LoadingSpinner text="Dokument wird analysiert..." />;
+  }
+
   return (
     <Card className="p-6 max-w-4xl mx-auto">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Kundenkodex hochladen</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Dokument hochladen</h2>
           <p className="text-muted-foreground">
-            Laden Sie den Lieferantenkodex Ihres Kunden hoch. Die Analyse startet automatisch nach dem Upload.
+            Laden Sie ein Kundendokument hoch. Die KI erkennt automatisch, ob es sich um einen Lieferantenkodex oder ein NDA handelt und analysiert es entsprechend.
           </p>
         </div>
 
@@ -202,16 +213,6 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
               className="w-full"
             />
           </div>
-
-          {loading && (
-            <div className="flex items-center justify-center gap-3 p-8 bg-muted/50 rounded-lg">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div className="text-center">
-                <p className="font-semibold">Dokument wird analysiert...</p>
-                <p className="text-sm text-muted-foreground">Dies kann einige Sekunden dauern</p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Card>

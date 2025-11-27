@@ -4,18 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import extract from "react-pdftotext";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
 interface BaselineSetupProps {
   userId: string;
   onBaselineCreated: (id: string) => void;
   existingBaselineId: string | null;
+  documentType: 'supplier_code' | 'nda';
 }
 
-const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: BaselineSetupProps) => {
+const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId, documentType }: BaselineSetupProps) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [fileName, setFileName] = useState("");
@@ -23,25 +24,46 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
   const [existingBaseline, setExistingBaseline] = useState<any>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (existingBaselineId) {
-      fetchBaseline();
+  const labels = {
+    supplier_code: {
+      title: "Mein Lieferantenkodex",
+      description: "Laden Sie Ihren eigenen Lieferantenkodex hoch. Dieser dient als Referenz, um zu prüfen, welche Kundenanforderungen Sie bereits erfüllen.",
+      saveButton: "Kodex speichern",
+      updateButton: "Kodex aktualisieren",
+    },
+    nda: {
+      title: "Mein NDA-Template",
+      description: "Laden Sie Ihre Standard-Geheimhaltungsvereinbarung hoch. Diese dient als Referenz für den Vergleich mit Kunden-NDAs.",
+      saveButton: "NDA speichern",
+      updateButton: "NDA aktualisieren",
     }
-  }, [existingBaselineId]);
+  };
+
+  useEffect(() => {
+    fetchBaseline();
+  }, [documentType]);
 
   const fetchBaseline = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("baseline_documents")
       .select("*")
-      .eq("id", existingBaselineId)
-      .single();
+      .eq("user_id", userId)
+      .eq("document_type", documentType)
+      .maybeSingle();
 
     if (data) {
       setExistingBaseline(data);
       setTitle(data.title);
       setContent(data.content);
       setFileName(data.file_name);
+    } else {
+      setExistingBaseline(null);
+      setTitle("");
+      setContent("");
+      setFileName("");
     }
+    setLoading(false);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,10 +88,8 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
       let text: string;
 
       if (isPDF) {
-        // Extract text from PDF
         text = await extract(file);
       } else {
-        // Read text file
         text = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (event) => resolve(event.target?.result as string);
@@ -113,7 +133,7 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
     if (!title || !content) {
       toast({
         title: "Fehler",
-        description: "Bitte geben Sie sowohl Titel als auch Inhalt an",
+        description: "Bitte laden Sie ein Dokument hoch",
         variant: "destructive",
       });
       return;
@@ -123,7 +143,6 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
 
     try {
       if (existingBaseline) {
-        // Update existing
         const { error } = await supabase
           .from("baseline_documents")
           .update({
@@ -137,11 +156,10 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
 
         toast({
           title: "Aktualisiert",
-          description: "Lieferantenkodex erfolgreich aktualisiert",
+          description: "Dokument erfolgreich aktualisiert",
         });
         onBaselineCreated(existingBaseline.id);
       } else {
-        // Create new
         const { data, error } = await supabase
           .from("baseline_documents")
           .insert({
@@ -149,6 +167,7 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
             title,
             content,
             file_name: fileName || "manual-entry.txt",
+            document_type: documentType,
           })
           .select()
           .single();
@@ -157,14 +176,15 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
 
         toast({
           title: "Erfolg",
-          description: "Lieferantenkodex erfolgreich gespeichert",
+          description: "Dokument erfolgreich gespeichert",
         });
         onBaselineCreated(data.id);
+        setExistingBaseline(data);
       }
     } catch (error: any) {
       toast({
         title: "Fehler",
-        description: error.message || "Lieferantenkodex konnte nicht gespeichert werden",
+        description: error.message || "Dokument konnte nicht gespeichert werden",
         variant: "destructive",
       });
     } finally {
@@ -175,7 +195,7 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
   const handleDelete = async () => {
     if (!existingBaseline) return;
 
-    if (!confirm("Möchten Sie diesen Lieferantenkodex wirklich löschen?")) return;
+    if (!confirm("Möchten Sie dieses Dokument wirklich löschen?")) return;
 
     setLoading(true);
 
@@ -194,12 +214,12 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
       
       toast({
         title: "Gelöscht",
-        description: "Lieferantenkodex erfolgreich gelöscht",
+        description: "Dokument erfolgreich gelöscht",
       });
     } catch (error: any) {
       toast({
         title: "Fehler",
-        description: error.message || "Lieferantenkodex konnte nicht gelöscht werden",
+        description: error.message || "Dokument konnte nicht gelöscht werden",
         variant: "destructive",
       });
     } finally {
@@ -207,71 +227,80 @@ const BaselineSetup = ({ userId, onBaselineCreated, existingBaselineId }: Baseli
     }
   };
 
+  if (loading && !fileName) {
+    return <LoadingSpinner text="Lädt Dokument..." />;
+  }
+
   return (
     <Card className="p-6 max-w-4xl mx-auto">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Mein Lieferantenkodex</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{labels[documentType].title}</h2>
           <p className="text-muted-foreground">
-            Laden Sie Ihren eigenen Lieferantenkodex hoch. Dieser dient als Referenz, um zu prüfen, welche Kundenanforderungen Sie bereits erfüllen.
+            {labels[documentType].description}
           </p>
         </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="baseline-file">Dokument hochladen (Optional)</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="baseline-file"
-                type="file"
-                accept=".txt,.pdf"
-                onChange={handleFileUpload}
-                disabled={loading}
-                className="flex-1"
-              />
-              {fileName && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  <span>{fileName}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="baseline-title">Dokumenttitel</Label>
-            <Input
-              id="baseline-title"
-              placeholder="z.B. Unternehmen Lieferantenkodex v2.0"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="baseline-content">Inhalt</Label>
-            <Textarea
-              id="baseline-content"
-              placeholder="Fügen Sie den Inhalt Ihres Lieferantenkodex hier ein..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[300px] font-mono text-sm"
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <Button onClick={handleSave} disabled={loading} className="flex-1">
-              <Upload className="h-4 w-4 mr-2" />
-              {existingBaseline ? "Kodex aktualisieren" : "Kodex speichern"}
-            </Button>
-            {existingBaseline && (
+        {existingBaseline ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+              <FileText className="h-8 w-8 text-primary flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-lg truncate">{existingBaseline.title}</h3>
+                <p className="text-sm text-muted-foreground truncate">{existingBaseline.file_name}</p>
+              </div>
               <Button variant="destructive" onClick={handleDelete} disabled={loading}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Löschen
               </Button>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center hover:border-primary/70 transition-colors">
+              <Upload className="h-12 w-12 mx-auto text-primary mb-4" />
+              <p className="text-lg font-medium mb-2">Dokument hochladen</p>
+              <p className="text-sm text-muted-foreground mb-4">PDF oder TXT (max. 20MB)</p>
+              
+              <div className="space-y-4 max-w-md mx-auto">
+                <div className="space-y-2">
+                  <Label htmlFor="baseline-file">Datei auswählen</Label>
+                  <Input
+                    id="baseline-file"
+                    type="file"
+                    accept=".txt,.pdf"
+                    onChange={handleFileUpload}
+                    disabled={loading}
+                  />
+                </div>
+
+                {fileName && (
+                  <>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                      <FileText className="h-4 w-4" />
+                      <span>{fileName}</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="baseline-title">Dokumenttitel</Label>
+                      <Input
+                        id="baseline-title"
+                        placeholder="z.B. Unternehmens-Kodex v2.0"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                    </div>
+
+                    <Button onClick={handleSave} disabled={loading} className="w-full">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {labels[documentType].saveButton}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
