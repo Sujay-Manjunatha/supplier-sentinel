@@ -181,20 +181,6 @@ export default function MyProcesses() {
               </div>
             </div>
 
-            <div>
-                <p className="text-2xl font-bold text-destructive">{evaluation.critical_gaps}</p>
-                <p className="text-xs text-muted-foreground">Kritisch</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-orange-500">{evaluation.medium_gaps}</p>
-                <p className="text-xs text-muted-foreground">Mittel</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-500">{evaluation.low_gaps}</p>
-                <p className="text-xs text-muted-foreground">Gering</p>
-              </div>
-            </div>
-
             <div className="flex gap-2">
               <Button
                 variant="outline"
