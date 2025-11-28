@@ -8,7 +8,7 @@ import { ReviewSummary } from "./ReviewSummary";
 interface Gap {
   section: string;
   customerText: string;
-  gapType: string;
+  gapType: 'negative_match';
   severity: "KRITISCH" | "MITTEL" | "GERING";
   aiRecommendation: string;
   ownCodexCoverage: string;
