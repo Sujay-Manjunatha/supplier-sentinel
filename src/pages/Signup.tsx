@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +17,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +25,7 @@ const Signup = () => {
     if (password !== confirmPassword) {
       toast({
         title: "Error",
-        description: "Passwords do not match",
+        description: t('auth.passwordMismatch'),
         variant: "destructive",
       });
       return;
@@ -31,7 +34,7 @@ const Signup = () => {
     if (password.length < 6) {
       toast({
         title: "Error",
-        description: "Password must be at least 6 characters",
+        description: t('auth.passwordTooShort'),
         variant: "destructive",
       });
       return;
@@ -48,8 +51,8 @@ const Signup = () => {
       if (error) throw error;
 
       toast({
-        title: "Account created!",
-        description: "Welcome to Supplier Code GAP Analysis",
+        title: t('auth.signupSuccess'),
+        description: t('auth.signupSuccess'),
       });
       
       navigate("/dashboard");
@@ -66,16 +69,18 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background flex items-center justify-center p-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md p-8">
         <div className="flex flex-col items-center mb-8">
           <Shield className="h-12 w-12 text-primary mb-4" />
-          <h1 className="text-3xl font-bold text-foreground">Create Account</h1>
-          <p className="text-muted-foreground mt-2">Start analyzing supplier codes today</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('auth.signupTitle')}</h1>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
               type="email"
@@ -87,7 +92,7 @@ const Signup = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('auth.password')}</Label>
             <Input
               id="password"
               type="password"
@@ -100,7 +105,7 @@ const Signup = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -113,21 +118,21 @@ const Signup = () => {
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? t('auth.creatingAccount') : t('common.signup')}
           </Button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
+            {t('auth.hasAccount')}{" "}
             <Button variant="link" className="p-0" onClick={() => navigate("/login")}>
-              Sign in
+              {t('common.login')}
             </Button>
           </p>
         </div>
 
         <Button variant="ghost" className="w-full mt-4" onClick={() => navigate("/")}>
-          Back to Home
+          {t('auth.backToHome')}
         </Button>
       </Card>
     </div>

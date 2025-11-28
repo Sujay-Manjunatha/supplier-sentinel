@@ -1,0 +1,245 @@
+{
+  "common": {
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "logout": "Abmelden",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "loading": "Lädt...",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "download": "Herunterladen",
+    "upload": "Hochladen",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "landing": {
+    "title": "Gap Analyse",
+    "heroTitle": "Analysieren Sie Dokumente mit",
+    "heroHighlight": "KI-gestützter Präzision",
+    "heroDescription": "Vergleichen Sie Lieferantenkodizes oder NDAs semantisch gegen Ihre Negativliste und identifizieren Sie kritische Abweichungen automatisch.",
+    "getStarted": "Jetzt starten",
+    "learnMore": "Mehr erfahren",
+    "features": {
+      "title": "Leistungsmerkmale",
+      "docUpload": {
+        "title": "Dokument-Upload",
+        "description": "Laden Sie PDFs oder Excel-Dateien hoch, unsere KI extrahiert automatisch alle Anforderungen und Klauseln."
+      },
+      "aiAnalysis": {
+        "title": "KI-Analyse",
+        "description": "Fortgeschrittene semantische Analyse vergleicht Dokumente gegen Ihre Negativliste und identifiziert kritische Matches."
+      },
+      "dashboard": {
+        "title": "Compliance-Dashboard",
+        "description": "Visualisieren Sie Analyseergebnisse mit Schweregraden und verwalten Sie alle Ihre Vorgänge zentral."
+      }
+    },
+    "howItWorks": {
+      "title": "So funktioniert es",
+      "step1": {
+        "title": "Negativliste pflegen",
+        "description": "Definieren Sie Ihre kritischen Punkte nach Dokumenttyp kategorisiert"
+      },
+      "step2": {
+        "title": "Kundendokument hochladen",
+        "description": "Laden Sie Lieferantenkodizes oder NDAs zur Analyse hoch"
+      },
+      "step3": {
+        "title": "Automatische Gap-Analyse",
+        "description": "KI findet Matches zwischen Dokument und Negativliste"
+      },
+      "step4": {
+        "title": "Punkt-für-Punkt Bewertung",
+        "description": "Überprüfen und entscheiden Sie über jeden gefundenen kritischen Punkt"
+      }
+    },
+    "cta": {
+      "title": "Bereit anzufangen?",
+      "description": "Erstellen Sie ein Konto und beginnen Sie noch heute mit der Analyse Ihrer Dokumente.",
+      "button": "Kostenloses Konto erstellen"
+    },
+    "footer": {
+      "tagline": "Ihre KI-gestützte Compliance-Lösung",
+      "rights": "Alle Rechte vorbehalten."
+    }
+  },
+  "auth": {
+    "loginTitle": "Bei Ihrem Konto anmelden",
+    "signupTitle": "Neues Konto erstellen",
+    "email": "E-Mail-Adresse",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "signingIn": "Wird angemeldet...",
+    "creatingAccount": "Konto wird erstellt...",
+    "noAccount": "Noch kein Konto?",
+    "hasAccount": "Bereits ein Konto?",
+    "backToHome": "Zurück zur Startseite",
+    "passwordMismatch": "Passwörter stimmen nicht überein",
+    "passwordTooShort": "Passwort muss mindestens 6 Zeichen lang sein",
+    "signupSuccess": "Konto erfolgreich erstellt! Sie können sich jetzt anmelden.",
+    "signupError": "Fehler bei der Registrierung",
+    "loginError": "Anmeldung fehlgeschlagen"
+  },
+  "dashboard": {
+    "title": "Gap Analyse Dashboard",
+    "dataFoundation": "Datengrundlage",
+    "myProcesses": "Meine Vorgänge",
+    "newProcess": "Neuer Vorgang",
+    "logoutSuccess": "Erfolgreich abgemeldet"
+  },
+  "dataFoundation": {
+    "supplierCode": "Lieferantenkodex",
+    "nda": "NDA / Geheimhaltung"
+  },
+  "negativeList": {
+    "titleSupplier": "Negativliste Lieferantenkodex",
+    "titleNda": "Negativliste NDA/Geheimhaltung",
+    "description": "Definieren Sie kritische Punkte, die in Kundendokumenten nicht akzeptabel sind.",
+    "addPoint": "Punkt hinzufügen",
+    "importFile": "Import aus PDF/Excel",
+    "importing": "Importiere...",
+    "noPoints": "Noch keine Negativpunkte vorhanden. Fügen Sie Punkte manuell hinzu oder importieren Sie sie aus einer Datei.",
+    "dragDrop": "Datei hier ablegen oder klicken zum Auswählen",
+    "supportedFormats": "Unterstützte Formate: PDF, Excel (.xlsx, .xls)",
+    "pointTitle": "Titel",
+    "pointDescription": "Beschreibung",
+    "pointCategory": "Kategorie",
+    "selectCategory": "Kategorie wählen",
+    "saving": "Speichert...",
+    "importSuccess": "Erfolgreich importiert",
+    "importError": "Fehler beim Import",
+    "addSuccess": "Punkt erfolgreich hinzugefügt",
+    "addError": "Fehler beim Hinzufügen",
+    "deleteSuccess": "Punkt erfolgreich gelöscht",
+    "deleteError": "Fehler beim Löschen",
+    "categories": {
+      "supplier": {
+        "working_conditions": "Arbeitsbedingungen",
+        "working_hours": "Arbeitszeit",
+        "compensation": "Vergütung",
+        "child_labor": "Kinderarbeit",
+        "forced_labor": "Zwangsarbeit",
+        "discrimination": "Diskriminierung",
+        "freedom_association": "Vereinigungsfreiheit",
+        "health_safety": "Gesundheit & Sicherheit",
+        "environment": "Umwelt",
+        "ethics": "Ethik & Compliance",
+        "subcontracting": "Unterauftragsvergabe",
+        "monitoring": "Überwachung & Audit",
+        "other": "Sonstige"
+      },
+      "nda": {
+        "confidentiality": "Geheimhaltungspflicht",
+        "confidential_info": "Vertrauliche Informationen",
+        "exclusions": "Ausnahmen",
+        "term": "Laufzeit",
+        "return_destruction": "Rückgabe/Vernichtung",
+        "liability": "Haftung",
+        "injunctive_relief": "Unterlassungsanspruch",
+        "jurisdiction": "Gerichtsstand",
+        "assignment": "Abtretung",
+        "entire_agreement": "Vollständigkeitsklausel",
+        "amendments": "Änderungen",
+        "severability": "Salvatorische Klausel",
+        "other": "Sonstige"
+      }
+    }
+  },
+  "comparison": {
+    "title": "Neuer Vorgang",
+    "selectType": "Dokumenttyp wählen",
+    "supplier": "Lieferantenkodex",
+    "nda": "NDA / Geheimhaltung",
+    "uploadDocument": "Kundendokument hochladen",
+    "dragDrop": "Datei hier ablegen oder klicken zum Auswählen",
+    "supportedFormats": "PDF, Excel (.xlsx, .xls)",
+    "analyzing": "Analysiere...",
+    "uploadSuccess": "Dokument erfolgreich hochgeladen und analysiert!",
+    "uploadError": "Fehler beim Hochladen"
+  },
+  "myProcesses": {
+    "title": "Meine Vorgänge",
+    "noProcesses": "Noch keine Vorgänge vorhanden. Starten Sie einen neuen Vorgang, um zu beginnen.",
+    "view": "Ansehen",
+    "delete": "Löschen",
+    "confirmDelete": "Sind Sie sicher, dass Sie diesen Vorgang löschen möchten?",
+    "deleteSuccess": "Vorgang erfolgreich gelöscht",
+    "deleteError": "Fehler beim Löschen",
+    "compliance": "Compliance",
+    "gaps": "Lücken"
+  },
+  "analysis": {
+    "title": "Analyseergebnisse",
+    "noAnalysis": "Keine Analyse ausgewählt",
+    "compliance": "Gesamt-Compliance",
+    "criticalGaps": "Kritische Lücken",
+    "mediumGaps": "Mittlere Lücken",
+    "lowGaps": "Geringe Lücken",
+    "noGaps": "Keine Abweichungen gefunden! Das Dokument entspricht Ihrer Negativliste.",
+    "startReview": "Bewertung starten",
+    "severity": {
+      "KRITISCH": "Kritisch",
+      "MITTEL": "Mittel",
+      "GERING": "Gering"
+    }
+  },
+  "review": {
+    "title": "Punkt-für-Punkt Bewertung",
+    "progress": "Fortschritt",
+    "of": "von",
+    "customerRequirement": "Kundenanforderung",
+    "matchedNegativePoint": "Gefundener Negativpunkt",
+    "matchConfidence": "Match-Konfidenz",
+    "aiRecommendation": "KI-Empfehlung",
+    "yourCodex": "Ihr Kodex",
+    "reasoning": "Begründung",
+    "risks": "Risiken bei Akzeptanz",
+    "accept": "Akzeptieren",
+    "reject": "Nicht akzeptieren",
+    "skip": "Überspringen",
+    "complete": "Bewertung abschließen",
+    "unansweredWarning": "Sie haben noch {{count}} unbeantwortete Fragen.",
+    "answerAll": "Bitte alle beantworten",
+    "continueAnyway": "Trotzdem fortfahren",
+    "status": {
+      "accepted": "Akzeptiert",
+      "rejected": "Abgelehnt",
+      "skipped": "Übersprungen",
+      "current": "Aktuell"
+    },
+    "confidence": {
+      "HOCH": "Hoch",
+      "MITTEL": "Mittel",
+      "NIEDRIG": "Niedrig"
+    }
+  },
+  "summary": {
+    "title": "Bewertung abgeschlossen",
+    "accepted": "Akzeptiert",
+    "rejected": "Nicht akzeptiert",
+    "allAccepted": "Alle Punkte akzeptiert",
+    "allAcceptedDesc": "Das Kundendokument entspricht vollständig Ihren Anforderungen.",
+    "rejectedPoints": "Nicht akzeptierte Punkte",
+    "severity": "Schweregrad",
+    "requirement": "Anforderung",
+    "yourReasoning": "Ihre Begründung",
+    "generateEmail": "E-Mail-Vorlage generieren",
+    "generating": "Generiere...",
+    "emailTemplate": "E-Mail-Vorlage",
+    "copyToClipboard": "In Zwischenablage kopieren",
+    "copied": "Kopiert!",
+    "restart": "Erneut bewerten",
+    "saveEvaluation": "Bewertung speichern",
+    "saving": "Speichert...",
+    "saveSuccess": "Bewertung erfolgreich gespeichert!",
+    "saveError": "Fehler beim Speichern"
+  }
+}

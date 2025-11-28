@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Shield, LogOut } from "lucide-react";
@@ -10,6 +11,7 @@ import DataFoundation from "@/components/dashboard/DataFoundation";
 import ComparisonUpload from "@/components/dashboard/ComparisonUpload";
 import AnalysisResults from "@/components/dashboard/AnalysisResults";
 import MyProcesses from "@/components/dashboard/MyProcesses";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -18,6 +20,7 @@ const Dashboard = () => {
   const [comparisonDocumentId, setComparisonDocumentId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const getUser = async () => {
@@ -45,8 +48,8 @@ const Dashboard = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
-      title: "Abgemeldet",
-      description: "Sie wurden erfolgreich abgemeldet.",
+      title: t('dashboard.logoutSuccess'),
+      description: t('dashboard.logoutSuccess'),
     });
     navigate("/");
   };
@@ -70,12 +73,15 @@ const Dashboard = () => {
             <div className="container mx-auto px-4 py-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Shield className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-bold text-foreground">Gap Analyse</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t('dashboard.title')}</h1>
               </div>
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Abmelden
-              </Button>
+              <div className="flex gap-2">
+                <LanguageSwitcher />
+                <Button variant="outline" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {t('common.logout')}
+                </Button>
+              </div>
             </div>
           </header>
 

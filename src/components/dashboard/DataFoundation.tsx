@@ -2,16 +2,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Shield } from "lucide-react";
 import NegativeListManager from "./NegativeListManager";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const DataFoundation = () => {
   const [activeDocType, setActiveDocType] = useState<'supplier_code' | 'nda'>('supplier_code');
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-foreground mb-2">Datengrundlage</h2>
+        <h2 className="text-3xl font-bold text-foreground mb-2">{t('dashboard.dataFoundation')}</h2>
         <p className="text-muted-foreground">
-          Verwalten Sie Ihre Negativlisten - Punkte die in Kundendokumenten NICHT akzeptiert werden
+          {t('negativeList.description')}
         </p>
       </div>
 
@@ -19,11 +21,11 @@ const DataFoundation = () => {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="supplier_code" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Lieferantenkodex
+            {t('dataFoundation.supplierCode')}
           </TabsTrigger>
           <TabsTrigger value="nda" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            NDA / Geheimhaltung
+            {t('dataFoundation.nda')}
           </TabsTrigger>
         </TabsList>
 
