@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, XCircle, AlertTriangle, RotateCcw, Mail, Copy, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface Gap {
   section: string;
@@ -39,6 +40,7 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const { t } = useTranslation();
 
   const acceptedCount = Object.values(decisions).filter(d => d === 'accept').length;
   const rejectedCount = Object.values(decisions).filter(d => d === 'reject').length;
@@ -63,10 +65,10 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
 
       setEmailTemplate(data.emailTemplate);
       setShowEmailDialog(true);
-      toast.success("Email-Vorlage erstellt");
+      toast.success(t('toast.emailGenerated'));
     } catch (error) {
       console.error('Error generating email:', error);
-      toast.error("Fehler beim Erstellen der Email-Vorlage");
+      toast.error(t('toast.emailGenerateError'));
     } finally {
       setIsGenerating(false);
     }
@@ -74,12 +76,12 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(emailTemplate);
-    toast.success("In Zwischenablage kopiert");
+    toast.success(t('toast.copiedToClipboard'));
   };
 
   const saveEvaluation = async () => {
     if (!analysisId || !comparisonDocumentId) {
-      toast.error("Fehlende Analyse-Daten");
+      toast.error(t('toast.missingAnalysisData'));
       return;
     }
 
@@ -87,22 +89,20 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("Nicht authentifiziert");
+        toast.error(t('toast.notAuthenticated'));
         return;
       }
 
-      // Get comparison document to extract customer name
       const { data: compDoc } = await supabase
         .from("comparison_documents")
         .select("content, title")
         .eq("id", comparisonDocumentId)
         .single();
 
-      let customerName = "Unbekanntes Unternehmen";
-      let title = "Lieferantenkodex";
+      let customerName = "Unknown Company";
+      let title = "Supplier Code";
 
       if (compDoc) {
-        // Try to extract company name using edge function
         const { data: extractData, error: extractError } = await supabase.functions.invoke('extract-company-name', {
           body: { documentContent: compDoc.content }
         });
@@ -111,7 +111,7 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
           customerName = extractData.companyName;
         }
 
-        title = `${customerName}-Lieferantenkodex`;
+        title = `${customerName} Supplier Code`;
       }
 
       const criticalGaps = rejectedGaps.filter(g => g.severity === 'KRITISCH').length;
@@ -137,10 +137,10 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
       if (error) throw error;
 
       setIsSaved(true);
-      toast.success("Bewertung erfolgreich gespeichert!");
+      toast.success(t('toast.evaluationSaved'));
     } catch (error) {
       console.error('Error saving evaluation:', error);
-      toast.error("Fehler beim Speichern der Bewertung");
+      toast.error(t('toast.evaluationSaveError'));
     } finally {
       setIsSaving(false);
     }
@@ -149,19 +149,6 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
   const criticalRejected = rejectedGaps.filter(g => g.severity === 'KRITISCH').length;
   const mediumRejected = rejectedGaps.filter(g => g.severity === 'MITTEL').length;
   const lowRejected = rejectedGaps.filter(g => g.severity === 'GERING').length;
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'KRITISCH':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'MITTEL':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'GERING':
-        return <AlertTriangle className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
 
   const getSeverityBadge = (severity: string) => {
     const variants = {
@@ -177,22 +164,19 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CheckCircle2 className="h-6 w-6" />
-          Bewertungszusammenfassung
+          {t('summary.title')}
         </CardTitle>
-        <CardDescription>
-          Übersicht über Ihre Entscheidungen zur Gap-Analyse
-        </CardDescription>
+        <CardDescription>{t('summary.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Summary Stats */}
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold text-primary">{acceptedCount}</div>
-            <div className="text-sm text-muted-foreground">Akzeptiert</div>
+            <div className="text-sm text-muted-foreground">{t('summary.accepted')}</div>
           </div>
           <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold text-destructive">{rejectedCount}</div>
-            <div className="text-sm text-muted-foreground">Nicht akzeptiert</div>
+            <div className="text-sm text-muted-foreground">{t('summary.rejected')}</div>
           </div>
         </div>
 
@@ -200,27 +184,25 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
           <>
             <Separator />
             
-            {/* Rejected by Severity */}
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-3 bg-destructive/10 rounded-lg">
                 <div className="text-xl font-bold text-destructive">{criticalRejected}</div>
-                <div className="text-xs text-muted-foreground">Kritisch</div>
+                <div className="text-xs text-muted-foreground">{t('summary.criticalSeverity')}</div>
               </div>
               <div className="text-center p-3 bg-primary/10 rounded-lg">
                 <div className="text-xl font-bold text-primary">{mediumRejected}</div>
-                <div className="text-xs text-muted-foreground">Mittel</div>
+                <div className="text-xs text-muted-foreground">{t('summary.mediumSeverity')}</div>
               </div>
               <div className="text-center p-3 bg-secondary/10 rounded-lg">
                 <div className="text-xl font-bold text-secondary-foreground">{lowRejected}</div>
-                <div className="text-xs text-muted-foreground">Gering</div>
+                <div className="text-xs text-muted-foreground">{t('summary.lowSeverity')}</div>
               </div>
             </div>
 
             <Separator />
 
-            {/* Rejected Gaps Details */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Nicht akzeptierte Punkte</h3>
+              <h3 className="font-semibold text-lg">{t('summary.rejectedPoints')}</h3>
               
               <div className="space-y-4">
                 {rejectedGaps.map((gap, index) => (
@@ -229,18 +211,18 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
                       <div>
                         <h4 className="font-semibold text-sm">{gap.section}</h4>
                         <Badge variant={getSeverityBadge(gap.severity)} className="mt-1">
-                          {getSeverityIcon(gap.severity)}
-                          <span className="ml-1">{gap.severity}</span>
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          {t(`analysis.severity.${gap.severity}`)}
                         </Badge>
                       </div>
                     </div>
                     <div className="space-y-2 mt-2">
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground">Kundenanforderung:</p>
+                        <p className="text-xs font-medium text-muted-foreground">{t('summary.customerRequirement')}:</p>
                         <p className="text-sm">{gap.customerText}</p>
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground">Grund der Ablehnung:</p>
+                        <p className="text-xs font-medium text-muted-foreground">{t('summary.rejectionReason')}:</p>
                         <p className="text-sm">{gap.reasoning}</p>
                       </div>
                     </div>
@@ -260,18 +242,18 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
                   {isGenerating ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Generiere...
+                      {t('summary.generating')}
                     </>
                   ) : (
                     <>
                       <Mail className="h-4 w-4 mr-2" />
-                      Email-Vorlage erstellen
+                      {t('summary.generateEmail')}
                     </>
                   )}
                 </Button>
                 <Button onClick={onRestart} variant="outline" className="flex-1">
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  Neu bewerten
+                  {t('summary.restart')}
                 </Button>
               </div>
 
@@ -285,17 +267,17 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Speichere...
+                    {t('summary.saving')}
                   </>
                 ) : isSaved ? (
                   <>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    ✓ Bewertung gespeichert
+                    {t('summary.saved')}
                   </>
                 ) : (
                   <>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Bewertung abschließen und speichern
+                    {t('summary.saveEvaluation')}
                   </>
                 )}
               </Button>
@@ -306,13 +288,11 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
         {rejectedCount === 0 && (
           <div className="text-center py-8">
             <CheckCircle2 className="h-12 w-12 mx-auto text-primary mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Alle Punkte akzeptiert!</h3>
-            <p className="text-muted-foreground mb-6">
-              Sie haben alle identifizierten Gaps als akzeptabel bewertet.
-            </p>
+            <h3 className="text-lg font-semibold mb-2">{t('summary.allAccepted')}</h3>
+            <p className="text-muted-foreground mb-6">{t('summary.allAcceptedMessage')}</p>
             <Button onClick={onRestart} variant="outline">
               <RotateCcw className="h-4 w-4 mr-2" />
-              Neue Analyse starten
+              {t('summary.newAnalysis')}
             </Button>
           </div>
         )}
@@ -321,10 +301,8 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Email-Vorlage für abgelehnte Punkte</DialogTitle>
-            <DialogDescription>
-              Diese Vorlage können Sie in Ihr Email-Programm kopieren und an Ihren Kunden senden.
-            </DialogDescription>
+            <DialogTitle>{t('summary.emailTemplateTitle')}</DialogTitle>
+            <DialogDescription>{t('summary.emailTemplateDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Textarea
@@ -335,10 +313,10 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
             <div className="flex gap-2">
               <Button onClick={copyToClipboard} className="flex-1">
                 <Copy className="h-4 w-4 mr-2" />
-                In Zwischenablage kopieren
+                {t('summary.copyToClipboard')}
               </Button>
               <Button onClick={() => setShowEmailDialog(false)} variant="outline" className="flex-1">
-                Schließen
+                {t('common.close')}
               </Button>
             </div>
           </div>

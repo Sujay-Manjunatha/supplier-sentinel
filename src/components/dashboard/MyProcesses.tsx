@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 interface CompletedEvaluation {
   id: string;
@@ -31,6 +32,7 @@ export default function MyProcesses() {
   const [selectedEvaluation, setSelectedEvaluation] = useState<CompletedEvaluation | null>(null);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     loadEvaluations();
@@ -52,8 +54,8 @@ export default function MyProcesses() {
     } catch (error) {
       console.error("Error loading evaluations:", error);
       toast({
-        title: "Fehler",
-        description: "Vorgänge konnten nicht geladen werden.",
+        title: t('toast.error'),
+        description: t('toast.processesLoadError'),
         variant: "destructive",
       });
     } finally {
@@ -74,14 +76,14 @@ export default function MyProcesses() {
 
       setEvaluations(evaluations.filter((e) => e.id !== deleteId));
       toast({
-        title: "Gelöscht",
-        description: "Vorgang wurde erfolgreich gelöscht.",
+        title: t('myProcesses.deleted'),
+        description: t('toast.processDeleted'),
       });
     } catch (error) {
       console.error("Error deleting evaluation:", error);
       toast({
-        title: "Fehler",
-        description: "Vorgang konnte nicht gelöscht werden.",
+        title: t('toast.error'),
+        description: t('toast.processDeleteError'),
         variant: "destructive",
       });
     } finally {
@@ -93,8 +95,8 @@ export default function MyProcesses() {
     if (selectedEvaluation?.email_template) {
       navigator.clipboard.writeText(selectedEvaluation.email_template);
       toast({
-        title: "Kopiert",
-        description: "Email-Vorlage wurde in die Zwischenablage kopiert.",
+        title: t('myProcesses.copied'),
+        description: t('toast.emailTemplateCopied'),
       });
     }
   };
@@ -114,10 +116,8 @@ export default function MyProcesses() {
       <Card>
         <CardContent className="pt-6 text-center">
           <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Noch keine abgeschlossenen Vorgänge vorhanden.</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Beginnen Sie einen neuen Vorgang, um Lieferantenkodizes zu bewerten.
-          </p>
+          <p className="text-muted-foreground">{t('myProcesses.noProcesses')}</p>
+          <p className="text-sm text-muted-foreground mt-2">{t('myProcesses.noProcessesDesc')}</p>
         </CardContent>
       </Card>
     );
@@ -126,8 +126,8 @@ export default function MyProcesses() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Meine Vorgänge</h2>
-        <Badge variant="secondary">{evaluations.length} Vorgänge</Badge>
+        <h2 className="text-2xl font-bold">{t('myProcesses.title')}</h2>
+        <Badge variant="secondary">{evaluations.length} {t('myProcesses.processes')}</Badge>
       </div>
 
       {evaluations.map((evaluation) => (
@@ -138,7 +138,7 @@ export default function MyProcesses() {
                 <CardTitle className="text-lg">{evaluation.title}</CardTitle>
                 <CardDescription className="flex items-center gap-2 mt-1">
                   <Calendar className="h-3 w-3" />
-                  {new Date(evaluation.completed_at).toLocaleDateString("de-DE", {
+                  {new Date(evaluation.completed_at).toLocaleDateString(i18n.language === 'de' ? 'de-DE' : 'en-US', {
                     day: "2-digit",
                     month: "2-digit",
                     year: "numeric",
@@ -162,21 +162,21 @@ export default function MyProcesses() {
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <div>
                   <p className="text-2xl font-bold">{evaluation.critical_gaps}</p>
-                  <p className="text-xs text-muted-foreground">Kritische Gaps</p>
+                  <p className="text-xs text-muted-foreground">{t('myProcesses.criticalGaps')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
                 <div>
                   <p className="text-2xl font-bold">{evaluation.medium_gaps}</p>
-                  <p className="text-xs text-muted-foreground">Mittlere Gaps</p>
+                  <p className="text-xs text-muted-foreground">{t('myProcesses.mediumGaps')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-blue-500" />
                 <div>
                   <p className="text-2xl font-bold">{evaluation.low_gaps}</p>
-                  <p className="text-xs text-muted-foreground">Geringe Gaps</p>
+                  <p className="text-xs text-muted-foreground">{t('myProcesses.lowGaps')}</p>
                 </div>
               </div>
             </div>
@@ -192,37 +192,31 @@ export default function MyProcesses() {
                 disabled={!evaluation.email_template}
               >
                 <FileText className="h-4 w-4 mr-2" />
-                Email-Vorlage anzeigen
+                {t('myProcesses.viewEmail')}
               </Button>
             </div>
           </CardContent>
         </Card>
       ))}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Vorgang löschen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Diese Aktion kann nicht rückgängig gemacht werden. Der Vorgang und alle zugehörigen Daten werden dauerhaft gelöscht.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('myProcesses.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('myProcesses.confirmDeleteDesc')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Löschen</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Email Template Dialog */}
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Email-Vorlage</DialogTitle>
-            <DialogDescription>
-              {selectedEvaluation?.title}
-            </DialogDescription>
+            <DialogTitle>{t('myProcesses.emailDialogTitle')}</DialogTitle>
+            <DialogDescription>{selectedEvaluation?.title}</DialogDescription>
           </DialogHeader>
           <Textarea
             value={selectedEvaluation?.email_template || ""}
@@ -231,10 +225,10 @@ export default function MyProcesses() {
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
-              Schließen
+              {t('common.close')}
             </Button>
             <Button onClick={copyEmailTemplate}>
-              In Zwischenablage kopieren
+              {t('summary.copyToClipboard')}
             </Button>
           </div>
         </DialogContent>

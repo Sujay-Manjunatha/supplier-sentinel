@@ -10,6 +10,7 @@ import { Plus, Upload, Trash2, Edit2, X, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import extract from "react-pdftotext";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { useTranslation } from "react-i18next";
 
 interface NegativeListItem {
   id: string;
@@ -23,31 +24,6 @@ interface NegativeListManagerProps {
   documentType: 'supplier_code' | 'nda';
 }
 
-const CATEGORIES_SUPPLIER = [
-  'Arbeitsbedingungen',
-  'Arbeitszeit',
-  'Vergütung',
-  'Gesundheit und Sicherheit',
-  'Umweltschutz',
-  'Ethik und Compliance',
-  'Haftung',
-  'Kündigung',
-  'Sonstiges'
-];
-
-const CATEGORIES_NDA = [
-  'Geheimhaltungspflicht',
-  'Vertrauliche Informationen',
-  'Nutzungsbeschränkungen',
-  'Weitergabeverbot',
-  'Aufbewahrung und Löschung',
-  'Laufzeit',
-  'Vertragsstrafe',
-  'Haftung',
-  'Rückgabepflicht',
-  'Sonstiges'
-];
-
 const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
   const [items, setItems] = useState<NegativeListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,8 +31,15 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', category: 'Sonstiges' });
   const { toast } = useToast();
+  const { t } = useTranslation();
 
-  const categories = documentType === 'supplier_code' ? CATEGORIES_SUPPLIER : CATEGORIES_NDA;
+  const categoryKeys = documentType === 'supplier_code' 
+    ? Object.keys(t('negativeList.categories.supplier', { returnObjects: true }))
+    : Object.keys(t('negativeList.categories.nda', { returnObjects: true }));
+  
+  const categories = documentType === 'supplier_code'
+    ? categoryKeys.map(key => t(`negativeList.categories.supplier.${key}`))
+    : categoryKeys.map(key => t(`negativeList.categories.nda.${key}`));
 
   useEffect(() => {
     fetchItems();
@@ -79,8 +62,8 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
     } catch (error) {
       console.error('Error fetching items:', error);
       toast({
-        title: "Fehler",
-        description: "Negativliste konnte nicht geladen werden",
+        title: t('toast.error'),
+        description: t('toast.errorLoadingList'),
         variant: "destructive"
       });
     }
@@ -99,7 +82,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       } else if (file.type === 'text/plain') {
         content = await file.text();
       } else {
-        throw new Error('Nur PDF oder TXT Dateien werden unterstützt');
+        throw new Error(t('toast.fileTypeNotSupported'));
       }
 
       const { data: extractedData, error: extractError } = await supabase.functions.invoke(
@@ -110,7 +93,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       if (extractError) throw extractError;
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Nicht angemeldet');
+      if (!user) throw new Error(t('toast.notLoggedIn'));
 
       const pointsToInsert = extractedData.points.map((point: any) => ({
         user_id: user.id,
@@ -127,16 +110,16 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       if (insertError) throw insertError;
 
       toast({
-        title: "Erfolg",
-        description: `${extractedData.points.length} Punkte erfolgreich importiert`
+        title: t('toast.success'),
+        description: `${extractedData.points.length} ${t('toast.pointsImported')}`
       });
 
       fetchItems();
     } catch (error: any) {
       console.error('Error uploading file:', error);
       toast({
-        title: "Fehler",
-        description: error.message || "Datei konnte nicht verarbeitet werden",
+        title: t('toast.error'),
+        description: error.message || t('toast.fileProcessError'),
         variant: "destructive"
       });
     } finally {
@@ -148,8 +131,8 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
   const handleAdd = async () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       toast({
-        title: "Fehler",
-        description: "Titel und Beschreibung sind erforderlich",
+        title: t('toast.error'),
+        description: t('toast.titleRequired'),
         variant: "destructive"
       });
       return;
@@ -157,7 +140,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Nicht angemeldet');
+      if (!user) throw new Error(t('toast.notLoggedIn'));
 
       const { error } = await supabase
         .from('negative_list_items')
@@ -172,18 +155,18 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       if (error) throw error;
 
       toast({
-        title: "Erfolg",
-        description: "Punkt erfolgreich hinzugefügt"
+        title: t('toast.success'),
+        description: t('toast.pointAdded')
       });
 
-      setFormData({ title: '', description: '', category: 'Sonstiges' });
+      setFormData({ title: '', description: '', category: t('negativeList.categories.supplier.Sonstiges') });
       setShowAddForm(false);
       fetchItems();
     } catch (error: any) {
       console.error('Error adding item:', error);
       toast({
-        title: "Fehler",
-        description: "Punkt konnte nicht hinzugefügt werden",
+        title: t('toast.error'),
+        description: t('toast.pointAddError'),
         variant: "destructive"
       });
     }
@@ -199,8 +182,8 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       if (error) throw error;
 
       toast({
-        title: "Erfolg",
-        description: "Punkt erfolgreich aktualisiert"
+        title: t('toast.success'),
+        description: t('toast.pointUpdated')
       });
 
       setEditingId(null);
@@ -208,15 +191,15 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
     } catch (error: any) {
       console.error('Error updating item:', error);
       toast({
-        title: "Fehler",
-        description: "Punkt konnte nicht aktualisiert werden",
+        title: t('toast.error'),
+        description: t('toast.pointUpdateError'),
         variant: "destructive"
       });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Möchten Sie diesen Punkt wirklich löschen?')) return;
+    if (!confirm(t('toast.confirmDelete'))) return;
 
     try {
       const { error } = await supabase
@@ -227,16 +210,16 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       if (error) throw error;
 
       toast({
-        title: "Erfolg",
-        description: "Punkt erfolgreich gelöscht"
+        title: t('toast.success'),
+        description: t('toast.pointDeleted')
       });
 
       fetchItems();
     } catch (error: any) {
       console.error('Error deleting item:', error);
       toast({
-        title: "Fehler",
-        description: "Punkt konnte nicht gelöscht werden",
+        title: t('toast.error'),
+        description: t('toast.pointDeleteError'),
         variant: "destructive"
       });
     }
@@ -258,22 +241,22 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold mb-2">
-              {documentType === 'supplier_code' ? 'Negativliste Lieferantenkodex' : 'Negativliste NDA/Geheimhaltung'}
+              {documentType === 'supplier_code' ? t('negativeList.titleSupplier') : t('negativeList.titleNda')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Diese Punkte werden in hochgeladenen Kundendokumenten gesucht
+              {t('negativeList.description')}
             </p>
           </div>
 
           <div className="flex gap-2">
             <Button onClick={() => setShowAddForm(!showAddForm)} variant="outline">
               <Plus className="h-4 w-4 mr-2" />
-              Punkt hinzufügen
+              {t('negativeList.addPoint')}
             </Button>
             <Button variant="outline" asChild>
               <label>
                 <Upload className="h-4 w-4 mr-2" />
-                Import aus Datei
+                {t('negativeList.importFile')}
                 <input
                   type="file"
                   accept=".pdf,.txt"
@@ -288,24 +271,24 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
             <Card className="p-4 bg-muted/50">
               <div className="space-y-3">
                 <div>
-                  <Label>Titel</Label>
+                  <Label>{t('negativeList.pointTitle')}</Label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Kurze Zusammenfassung"
+                    placeholder={t('negativeList.titlePlaceholder')}
                   />
                 </div>
                 <div>
-                  <Label>Beschreibung</Label>
+                  <Label>{t('negativeList.pointDescription')}</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Vollständige Beschreibung des Punktes"
+                    placeholder={t('negativeList.descriptionPlaceholder')}
                     rows={3}
                   />
                 </div>
                 <div>
-                  <Label>Kategorie</Label>
+                  <Label>{t('negativeList.pointCategory')}</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -320,11 +303,11 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
                 <div className="flex gap-2">
                   <Button onClick={handleAdd} size="sm">
                     <Check className="h-4 w-4 mr-2" />
-                    Speichern
+                    {t('common.save')}
                   </Button>
                   <Button onClick={() => setShowAddForm(false)} variant="ghost" size="sm">
                     <X className="h-4 w-4 mr-2" />
-                    Abbrechen
+                    {t('common.cancel')}
                   </Button>
                 </div>
               </div>
@@ -336,7 +319,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       {Object.keys(groupedItems).length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">
-            Noch keine Negativpunkte vorhanden. Fügen Sie Punkte manuell hinzu oder importieren Sie sie aus einer Datei.
+            {t('negativeList.noPoints')}
           </p>
         </Card>
       ) : (
@@ -362,7 +345,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
                           rows={3}
                         />
                         <Button onClick={() => setEditingId(null)} size="sm" variant="ghost">
-                          Fertig
+                          {t('common.done')}
                         </Button>
                       </div>
                     ) : (
