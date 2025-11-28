@@ -6,14 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface Match {
-  section: string;
-  customerText: string;
-  matchedNegativePoint: {
-    title: string;
-    description: string;
+interface Finding {
+  match_type: 'CONFLICT' | 'NO_CONFLICT' | 'PARTIAL' | 'UNCLEAR';
+  should_flag: boolean;
+  confidence_score: number;
+  document_location: string;
+  excerpt: string;
+  reasoning: string;
+}
+
+interface AnalysisResult {
+  negative_point: string;
+  analysis: {
+    intent: string;
+    polarity: string;
+    core_concept: string;
   };
-  matchConfidence: 'HOCH' | 'MITTEL' | 'NIEDRIG';
+  findings: Finding[];
 }
 
 serve(async (req) => {
@@ -32,25 +41,67 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `Du bist ein Experte für Dokumentenanalyse und Compliance-Prüfung.
+    const systemPrompt = `Du bist ein sorgfältiger Vertragsjurist, nicht eine reine Schlagwortsuche.
 
-AUFGABE:
-Durchsuche das KUNDENDOKUMENT nach Anforderungen, Klauseln oder Bedingungen, die mit den Punkten aus der NEGATIVLISTE übereinstimmen oder diesen sehr ähnlich sind.
+ZIEL: Finde nur die Stellen im Dokument, an denen der Inhalt der Negativliste widerspricht oder sie nicht erfüllt.
+WICHTIG: Flagge NICHT die Stellen, an denen das Dokument die gleiche Position wie der Nutzer einnimmt.
 
-Die NEGATIVLISTE enthält Punkte, die NICHT akzeptiert werden können.
+ANALYSE-PROZESS:
 
-Für jeden gefundenen Treffer im Kundendokument:
-1. Identifiziere die Textstelle im Kundendokument
-2. Ordne sie einem passenden Negativpunkt zu
-3. Bewerte die Übereinstimmung (HOCH/MITTEL/NIEDRIG)
+1. INTENT & POLARITY DES NEGATIVPUNKTS
+Für jeden Negativpunkt bestimme:
+- Intent: Was will der Nutzer inhaltlich?
+- Polarity:
+  * NEGATIVE_VETO → "Wir akzeptieren X nicht", "Keine X", "X ist unzulässig"
+  * POSITIVE_REQUIREMENT → "Wir verlangen X", "X muss enthalten sein"
+  * CONDITIONAL → "Nur unter Bedingung Y"
+- Kernkonzept(e): Hauptthemen extrahieren
+- Synonyme: 3-5 sinnvolle Varianten als Keywords
 
-ÜBEREINSTIMMUNGS-KRITERIEN:
-- HOCH: Inhaltlich nahezu identisch oder direkt widersprechend
-- MITTEL: Ähnliche Thematik, aber unterschiedliche Formulierung
-- NIEDRIG: Thematisch verwandt, aber nicht eindeutig übereinstimmend
+2. RELEVANTE TEXTSTELLEN FINDEN
+- Suche alle Abschnitte mit Kernkonzepten oder Synonymen
+- Hole Kontext: 2-3 Sätze vor und nach der Fundstelle
+- Arbeite mit vollständigen Sätzen, nicht nur Wörtern
+
+3. INTENT-DIRECTION CHECK (KRITISCH!)
+Für jede gefundene Passage:
+- Teilt das Dokument die Position des Nutzers?
+  → Gleiche Richtung → KEIN Konflikt, NICHT flaggen!
+  Beispiel: Negativpunkt "Wir akzeptieren keine Vertragsstrafen" 
+           + Dokument "Vertragsstrafen sind unzulässig"
+           → NO_CONFLICT
+
+- Oder vertritt das Dokument die Gegenposition?
+  → Gegensätzliche Richtung → Konflikt, flaggen!
+  Beispiel: Negativpunkt "Wir akzeptieren keine Vertragsstrafen"
+           + Dokument "Der Anbieter kann Vertragsstrafen verhängen"
+           → CONFLICT
+
+Polarity-Marker für Ablehnung/Verbot: "nicht zulässig", "unzulässig", "ist verboten", "darf nicht", "wird ausgeschlossen", "wird nicht akzeptiert"
+Polarity-Marker für Erlaubnis/Verpflichtung: "ist zulässig", "ist erlaubt", "darf", "kann", "ist berechtigt", "hat das Recht", "muss"
+
+4. KONFIDENZ-SCORE & FLAGGING
+Für jedes (Negativpunkt, Dokumentpassage)-Paar:
+- Semantische Relevanz: Thema wirklich getroffen?
+- Intent-Richtung: Konflikt oder gleiche Position?
+- Konfidenz-Score 0-100:
+  * Hohe Nähe + klarer Konflikt → > 80
+  * Unklare/gemischte Aussagen → 40-70
+  * Nur lose Erwähnung → < 40
+
+FLAGGING-REGEL (should_flag = true NUR wenn):
+- Kernkonzept wirklich getroffen UND
+- Intent/Richtung im Konflikt UND
+- Konfidenz ≥ 75
+
+5. FALSE POSITIVES VERMEIDEN
+- Wenn Negativpunkt und Dokument inhaltlich dieselbe Richtung haben → niemals als Konflikt flaggen
+- Wenn Dokument nur erklärt was allgemein üblich ist → kein Konflikt
+- Bei Unsicherheit (Score 50-75) → match_type = "UNCLEAR", should_flag = false
+- Keine rein keyword-basierten Flags ohne Kontextprüfung
 
 OUTPUT-FORMAT:
-Erstelle ein JSON-Array mit allen gefundenen Treffern.`;
+JSON mit detaillierter Analyse pro Negativpunkt.`;
 
     const negativeListText = negativeListItems && negativeListItems.length > 0
       ? negativeListItems.map((item: any, index: number) => 
@@ -68,21 +119,32 @@ ${documentContent}
 
 ---
 
-Durchsuche das Kundendokument und finde alle Stellen, die mit den Negativpunkten übereinstimmen oder diesen ähnlich sind.
-Gib das Ergebnis als JSON-Array zurück mit der Struktur:
+Analysiere das Kundendokument gemäß dem beschriebenen Prozess.
+Gib das Ergebnis als JSON zurück mit der Struktur:
 {
-  "matches": [
+  "results": [
     {
-      "section": "Abschnitt im Kundendokument",
-      "customerText": "Exakter Text aus dem Kundendokument",
-      "matchedNegativePoint": {
-        "title": "Titel des passenden Negativpunkts",
-        "description": "Beschreibung des Negativpunkts"
+      "negative_point": "Originaltext des Negativpunkts",
+      "analysis": {
+        "intent": "ABLEHNUNG | ANFORDERUNG | CONDITIONAL",
+        "polarity": "NEGATIVE | POSITIVE | NEUTRAL",
+        "core_concept": "kurze Beschreibung"
       },
-      "matchConfidence": "HOCH|MITTEL|NIEDRIG"
+      "findings": [
+        {
+          "match_type": "CONFLICT | NO_CONFLICT | PARTIAL | UNCLEAR",
+          "should_flag": true/false,
+          "confidence_score": 0-100,
+          "document_location": "§X.Y oder Abschnitt-Referenz",
+          "excerpt": "relevante Passage (einige Sätze)",
+          "reasoning": "1-2 Sätze Begründung"
+        }
+      ]
     }
   ]
-}`;
+}
+
+WICHTIG: Flagge nur tatsächliche Konflikte (should_flag=true). Wenn Dokument und Negativpunkt die gleiche Position vertreten, setze match_type="NO_CONFLICT" und should_flag=false.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -132,28 +194,42 @@ Gib das Ergebnis als JSON-Array zurück mit der Struktur:
       throw new Error('Invalid JSON response from AI');
     }
 
-    const matches = parsedResult.matches || parsedResult;
+    const results = parsedResult.results || parsedResult;
     
-    if (!Array.isArray(matches)) {
-      console.error('Expected array of matches, got:', typeof matches);
+    if (!Array.isArray(results)) {
+      console.error('Expected array of results, got:', typeof results);
       throw new Error('Invalid response format from AI');
     }
 
-    console.log(`Analysis complete. Found ${matches.length} matches with negative list`);
+    console.log(`Analysis complete. Found ${results.length} negative points analyzed`);
 
-    // Convert matches to gap format for backwards compatibility
-    const gaps = matches.map((match: Match) => ({
-      section: match.section,
-      customerText: match.customerText,
-      gapType: 'negative_match',
-      severity: match.matchConfidence === 'HOCH' ? 'KRITISCH' : match.matchConfidence === 'MITTEL' ? 'MITTEL' : 'GERING',
-      aiRecommendation: 'ABLEHNEN',
-      reasoning: `Übereinstimmung mit Negativpunkt: ${match.matchedNegativePoint.title}`,
-      matchedNegativePoint: match.matchedNegativePoint,
-      matchConfidence: match.matchConfidence,
-      ownCodexCoverage: 'N/A',
-      risksIfAccepted: 'Dieser Punkt steht auf Ihrer Negativliste'
-    }));
+    // Convert findings to gap format, filtering by should_flag
+    const gaps: any[] = [];
+    
+    results.forEach((result: AnalysisResult) => {
+      result.findings.forEach((finding: Finding) => {
+        // Only include findings that should be flagged
+        if (finding.should_flag) {
+          gaps.push({
+            section: finding.document_location,
+            customerText: finding.excerpt,
+            gapType: 'negative_match',
+            severity: finding.confidence_score >= 85 ? 'KRITISCH' : finding.confidence_score >= 75 ? 'MITTEL' : 'GERING',
+            aiRecommendation: finding.match_type === 'CONFLICT' ? 'ABLEHNEN' : 'PRÜFEN',
+            reasoning: finding.reasoning,
+            matchedNegativePoint: {
+              title: result.negative_point,
+              description: `Intent: ${result.analysis.intent}, Polarity: ${result.analysis.polarity}`
+            },
+            matchConfidence: finding.confidence_score >= 85 ? 'HOCH' : finding.confidence_score >= 75 ? 'MITTEL' : 'NIEDRIG',
+            ownCodexCoverage: result.analysis.core_concept,
+            risksIfAccepted: `Match Type: ${finding.match_type}, Score: ${finding.confidence_score}`
+          });
+        }
+      });
+    });
+
+    console.log(`Flagged ${gaps.length} conflicts after filtering`);
 
     // Calculate statistics
     const criticalGaps = gaps.filter((gap: any) => gap.severity === 'KRITISCH').length;
