@@ -12,12 +12,17 @@ import { toast } from "sonner";
 interface Gap {
   section: string;
   customerText: string;
-  gapType: 'ZUSÄTZLICH' | 'STRENGER' | 'WIDERSPRUCH';
+  gapType: 'negative_match';
   severity: 'KRITISCH' | 'MITTEL' | 'GERING';
-  aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  aiRecommendation: string;
   ownCodexCoverage: string;
   reasoning: string;
   risksIfAccepted: string;
+  matchedNegativePoint?: {
+    title: string;
+    description: string;
+  };
+  matchConfidence?: 'HOCH' | 'MITTEL' | 'NIEDRIG';
 }
 
 interface ReviewSummaryProps {
