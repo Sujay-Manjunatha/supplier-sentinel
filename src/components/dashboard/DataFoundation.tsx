@@ -9,7 +9,7 @@ const DataFoundation = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h2 className="text-3xl font-bold text-foreground mb-2">{t('dashboard.dataFoundation')}</h2>
         <p className="text-muted-foreground">
@@ -29,11 +29,11 @@ const DataFoundation = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="supplier_code" className="mt-6">
+        <TabsContent value="supplier_code" className="mt-4">
           <NegativeListManager documentType="supplier_code" />
         </TabsContent>
 
-        <TabsContent value="nda" className="mt-6">
+        <TabsContent value="nda" className="mt-4">
           <NegativeListManager documentType="nda" />
         </TabsContent>
       </Tabs>

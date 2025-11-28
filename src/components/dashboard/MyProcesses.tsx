@@ -157,7 +157,7 @@ export default function MyProcesses() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-destructive" />
                 <div>

@@ -236,8 +236,8 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
+    <div className="space-y-4">
+      <Card className="p-5">
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold mb-2">
@@ -323,14 +323,14 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
           </p>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Object.entries(groupedItems).map(([category, categoryItems]) => (
             <Card key={category} className="p-4">
               <h4 className="font-semibold mb-3 flex items-center gap-2">
                 {category}
                 <span className="text-xs text-muted-foreground">({categoryItems.length})</span>
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {categoryItems.map((item) => (
                   <div key={item.id} className="border rounded-lg p-3 bg-card">
                     {editingId === item.id ? (
