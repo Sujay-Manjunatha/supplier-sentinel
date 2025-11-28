@@ -28,36 +28,37 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `Du bist ein professioneller Business-Korrespondenz-Experte.
-    
-Erstelle eine höfliche, professionelle Email-Vorlage auf Deutsch für einen Lieferanten, der bestimmte Anforderungen aus dem Lieferantenkodex eines Kunden nicht akzeptieren kann.
+    const systemPrompt = `Du bist ein professioneller Business-Kommunikationsexperte.
 
-WICHTIGE RICHTLINIEN:
-- Höflicher, respektvoller Ton
-- Wertschätzung der Geschäftsbeziehung
-- Klare, aber diplomatische Formulierungen
-- Konstruktiver Ansatz mit Dialogbereitschaft
-- Professionelle Geschäftssprache
+AUFGABE:
+Erstelle eine KURZE, DIREKTE E-Mail auf Deutsch an einen Lieferanten.
 
-STRUKTUR:
-1. Höfliche Anrede (generisch: "Sehr geehrte Damen und Herren")
-2. Bezug auf den erhaltenen Lieferantenkodex
-3. Auflistung der Punkte, die nicht akzeptiert werden können (mit kurzer, sachlicher Begründung)
-4. Angebot zur weiteren Diskussion und gemeinsamen Lösungsfindung
-5. Positive Betonung der weiteren Zusammenarbeit
-6. Professioneller Abschluss
+STRUKTUR (EXAKT SO):
+1. "Sehr geehrter Lieferant,"
+2. Eine Zeile: "Folgende Punkte in Ihrem Dokument können wir nicht akzeptieren:"
+3. Bullet-Liste der abgelehnten Punkte (NUR der Abschnitt und der Text, KEINE Begründung)
+4. "Vielen Dank für Ihr Verständnis."
+5. "Mit freundlichen Grüßen"
+6. "[Ihr Name]"
 
-Die Email sollte komplett sein und direkt verwendbar.`;
+WICHTIG:
+- KEINE langen Erklärungen
+- KEINE Begründungen
+- NUR die Liste der Punkte
+- Maximal 10 Zeilen insgesamt
+- Direkt und sachlich`;
 
-    const userPrompt = `Erstelle eine professionelle Email-Vorlage für folgende abgelehnte Punkte:
+    const rejectedGapsText = rejectedGaps
+      .map((gap: RejectedGap) => 
+        `- ${gap.section}: ${gap.customerText}`
+      )
+      .join('\n');
 
-${rejectedGaps.map((gap: RejectedGap, index: number) => `
-${index + 1}. ${gap.section} (Schweregrad: ${gap.severity})
-Kundenanforderung: ${gap.customerText}
-Grund der Ablehnung: ${gap.reasoning}
-`).join('\n')}
+    const userPrompt = `Erstelle eine KURZE E-Mail für folgende abgelehnte Punkte:
 
-Die Email soll höflich erklären, dass wir als Lieferant diese Punkte nicht akzeptieren können, und Bereitschaft zur Diskussion signalisieren.`;
+${rejectedGapsText}
+
+Halte dich EXAKT an die vorgegebene Struktur. KEINE langen Erklärungen!`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -71,7 +72,6 @@ Die Email soll höflich erklären, dass wir als Lieferant diese Punkte nicht akz
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
       }),
     });
 

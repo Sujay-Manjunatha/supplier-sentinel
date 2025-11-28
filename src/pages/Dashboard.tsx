@@ -14,7 +14,6 @@ import MyProcesses from "@/components/dashboard/MyProcesses";
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [activeSection, setActiveSection] = useState("data-foundation");
-  const [baselineId, setBaselineId] = useState<string | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [comparisonDocumentId, setComparisonDocumentId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -27,7 +26,6 @@ const Dashboard = () => {
         navigate("/login");
       } else {
         setUser(user);
-        checkForBaseline(user.id);
       }
     };
 
@@ -44,20 +42,6 @@ const Dashboard = () => {
     };
   }, [navigate]);
 
-  const checkForBaseline = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("baseline_documents")
-      .select("id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (data) {
-      setBaselineId(data.id);
-    }
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({
@@ -65,15 +49,6 @@ const Dashboard = () => {
       description: "Sie wurden erfolgreich abgemeldet.",
     });
     navigate("/");
-  };
-
-  const handleBaselineCreated = (id: string) => {
-    setBaselineId(id);
-    setActiveSection("new-process");
-    toast({
-      title: "Kodex gespeichert",
-      description: "Ihr Kodex wurde erfolgreich gespeichert.",
-    });
   };
 
   const handleAnalysisComplete = (id: string, compDocId: string) => {
@@ -107,11 +82,7 @@ const Dashboard = () => {
           {/* Main Content */}
           <main className="flex-1 container mx-auto px-4 py-8">
             {activeSection === "data-foundation" && (
-              <DataFoundation
-                userId={user.id}
-                onBaselineCreated={handleBaselineCreated}
-                existingBaselineId={baselineId}
-              />
+              <DataFoundation />
             )}
 
             {activeSection === "processes" && <MyProcesses />}
@@ -119,7 +90,7 @@ const Dashboard = () => {
             {activeSection === "new-process" && (
               <ComparisonUpload
                 userId={user.id}
-                baselineId={baselineId}
+                baselineId=""
                 onAnalysisComplete={handleAnalysisComplete}
               />
             )}
