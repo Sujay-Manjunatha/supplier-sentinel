@@ -1,4 +1,5 @@
 import { Database, FolderOpen, Upload } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +18,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) {
   const { open } = useSidebar();
+  const { t } = useTranslation();
 
   return (
     <Sidebar collapsible="icon">
@@ -33,7 +35,7 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
                 className="text-primary text-base py-3"
               >
                 <Database className="h-5 w-5" />
-                {open && <span>Datengrundlage</span>}
+                {open && <span>{t('dashboard.dataFoundation')}</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -45,7 +47,7 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
                 className="text-primary text-base py-3"
               >
                 <FolderOpen className="h-5 w-5" />
-                {open && <span>Meine Vorgänge</span>}
+                {open && <span>{t('dashboard.myProcesses')}</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -57,7 +59,7 @@ export function AppSidebar({ activeSection, onSectionChange }: AppSidebarProps) 
                 className="text-primary text-base py-3"
               >
                 <Upload className="h-5 w-5" />
-                {open && <span>Neuer Vorgang</span>}
+                {open && <span>{t('dashboard.newProcess')}</span>}
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
