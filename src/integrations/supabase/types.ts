@@ -14,75 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      accepted_requirements: {
-        Row: {
-          accepted_at: string
-          category: string | null
-          document_type: string
-          id: string
-          notes: string | null
-          requirement_hash: string
-          requirement_text: string
-          section: string
-          user_id: string
-        }
-        Insert: {
-          accepted_at?: string
-          category?: string | null
-          document_type?: string
-          id?: string
-          notes?: string | null
-          requirement_hash: string
-          requirement_text: string
-          section: string
-          user_id: string
-        }
-        Update: {
-          accepted_at?: string
-          category?: string | null
-          document_type?: string
-          id?: string
-          notes?: string | null
-          requirement_hash?: string
-          requirement_text?: string
-          section?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      baseline_documents: {
-        Row: {
-          content: string
-          created_at: string
-          document_type: string
-          file_name: string
-          id: string
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          document_type?: string
-          file_name: string
-          id?: string
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          document_type?: string
-          file_name?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       comparison_documents: {
         Row: {
           baseline_document_id: string
@@ -111,15 +42,7 @@ export type Database = {
           title?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "comparison_documents_baseline_document_id_fkey"
-            columns: ["baseline_document_id"]
-            isOneToOne: false
-            referencedRelation: "baseline_documents"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       completed_evaluations: {
         Row: {
@@ -231,13 +154,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "gap_analyses_baseline_document_id_fkey"
-            columns: ["baseline_document_id"]
-            isOneToOne: false
-            referencedRelation: "baseline_documents"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "gap_analyses_comparison_document_id_fkey"
             columns: ["comparison_document_id"]
             isOneToOne: false
@@ -245,6 +161,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      negative_list_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string
+          document_type: string
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description: string
+          document_type?: string
+          id?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string
+          document_type?: string
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

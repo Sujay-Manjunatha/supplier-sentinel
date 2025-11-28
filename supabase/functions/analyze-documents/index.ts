@@ -6,15 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface Gap {
+interface Match {
   section: string;
   customerText: string;
-  gapType: 'ZUSÄTZLICH' | 'STRENGER' | 'WIDERSPRUCH';
-  severity: 'KRITISCH' | 'MITTEL' | 'GERING';
-  aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
-  ownCodexCoverage: string;
-  reasoning: string;
-  risksIfAccepted: string;
+  matchedNegativePoint: {
+    title: string;
+    description: string;
+  };
+  matchConfidence: 'HOCH' | 'MITTEL' | 'NIEDRIG';
 }
 
 serve(async (req) => {
@@ -23,109 +22,64 @@ serve(async (req) => {
   }
 
   try {
-    const { baselineContent, comparisonContent, acceptedRequirements = [] } = await req.json();
-    
+    const { documentContent, negativeListItems, documentType } = await req.json();
     console.log('Starting document analysis...');
-    console.log(`Found ${acceptedRequirements.length} permanently accepted requirements`);
-    
+    console.log('Document type:', documentType);
+    console.log('Negative list items count:', negativeListItems?.length || 0);
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Use AI to analyze and compare documents semantically
-    const systemPrompt = `Du bist ein Experte für Compliance-Analysen aus der Perspektive eines LIEFERANTEN.
+    const systemPrompt = `Du bist ein Experte für Dokumentenanalyse und Compliance-Prüfung.
 
-KONTEXT:
-- "MEIN KODEX" = Der eigene Lieferantenkodex des Benutzers
-- "KUNDENKODEX" = Der Lieferantenkodex, den der Kunde vom Lieferanten fordert
+AUFGABE:
+Durchsuche das KUNDENDOKUMENT nach Anforderungen, Klauseln oder Bedingungen, die mit den Punkten aus der NEGATIVLISTE übereinstimmen oder diesen sehr ähnlich sind.
 
-DEINE AUFGABE:
-Vergleiche den KUNDENKODEX mit MEIN KODEX und identifiziere NUR echte Abweichungen und Zusatzanforderungen.
+Die NEGATIVLISTE enthält Punkte, die NICHT akzeptiert werden können.
 
-⚠️ WICHTIGE GRUNDHALTUNG - SEI ENTSPANNT UND GROSSZÜGIG:
-Prüfe auf INHALTLICHE/SEMANTISCHE Übereinstimmung, NICHT auf wörtliche Formulierung!
-Gehe davon aus, dass der Lieferant compliant ist, wenn das Thema im eigenen Kodex behandelt wird - 
-auch wenn die Formulierung anders ist. Im Zweifel ist es KEIN Gap.
+Für jeden gefundenen Treffer im Kundendokument:
+1. Identifiziere die Textstelle im Kundendokument
+2. Ordne sie einem passenden Negativpunkt zu
+3. Bewerte die Übereinstimmung (HOCH/MITTEL/NIEDRIG)
 
-BEISPIELE FÜR **KEINEN GAP** (diese ignorieren!):
-✓ Kunde: "aktiv verhindern" vs. Eigener Kodex: "Maßnahmen treffen, um sicherzustellen" → Gleiche Intention, KEIN GAP
-✓ Kunde: "verboten" vs. Eigener Kodex: "nicht gestattet" → Gleiche Bedeutung, KEIN GAP
-✓ Kunde: "regelmäßig prüfen" vs. Eigener Kodex: "kontinuierlich überwachen" → Gleicher Zweck, KEIN GAP
-✓ Kunde: "Menschenrechte schützen" vs. Eigener Kodex: "gute Behandlung sicherstellen" → Gleiche Richtung, KEIN GAP
-✓ Kunde: "faire Löhne zahlen" vs. Eigener Kodex: "angemessene Vergütung" → Semantisch gleichwertig, KEIN GAP
+ÜBEREINSTIMMUNGS-KRITERIEN:
+- HOCH: Inhaltlich nahezu identisch oder direkt widersprechend
+- MITTEL: Ähnliche Thematik, aber unterschiedliche Formulierung
+- NIEDRIG: Thematisch verwandt, aber nicht eindeutig übereinstimmend
 
-NUR als Gap identifizieren wenn EINE dieser Bedingungen zutrifft:
-1. **ZUSÄTZLICH**: Das Thema kommt im eigenen Kodex GAR NICHT vor (auch nicht sinngemäß/semantisch)
-2. **STRENGER**: Die Anforderung ist DEUTLICH strenger (konkrete Zahlen, Fristen, Zertifizierungen die fehlen)
-3. **WIDERSPRUCH**: Echter Widerspruch (Kunde fordert A, eigener Kodex sagt explizit NICHT-A)
+OUTPUT-FORMAT:
+Erstelle ein JSON-Array mit allen gefundenen Treffern.`;
 
-KEINE Gaps für:
-❌ Formulierungsunterschiede bei gleicher Bedeutung
-❌ Synonyme oder umschriebene Formulierungen
-❌ Standard-Anforderungen die beide Kodizes semantisch teilen
-❌ Anforderungen die der eigene Kodex sinngemäß erfüllt
+    const negativeListText = negativeListItems && negativeListItems.length > 0
+      ? negativeListItems.map((item: any, index: number) => 
+          `${index + 1}. [${item.category}] ${item.title}\n   ${item.description}`
+        ).join('\n\n')
+      : 'Keine Negativpunkte definiert';
 
-SCHWEREGRAD (bezogen auf das RISIKO für den Lieferanten bei Nicht-Erfüllung):
-- KRITISCH: Erhebliches Risiko (rechtlich, finanziell, Reputationsschaden, Geschäftsbeziehung gefährdet)
-- MITTEL: Moderate Risiken oder Aufwände bei Umsetzung
-- GERING: Geringes Risiko, einfach umzusetzen, geringe Kosten (verwende dies für Formulierungsunterschiede)
+    const userPrompt = `NEGATIVLISTE (Punkte die NICHT akzeptiert werden):
+${negativeListText}
 
-BEWERTUNGSKRITERIEN:
-- AKZEPTIEREN: Anforderung ist vernünftig, umsetzbar, geringe Risiken
-- ABLEHNEN: Anforderung ist unrealistisch, zu kostspielig, rechtlich/wirtschaftlich problematisch
-- PRÜFEN: Anforderung erfordert weitere Klärung oder Verhandlung
+---
 
-AUSGABEFORMAT für jeden Gap:
-- section: Abschnitts-/Themenname
-- customerText: Die konkrete Anforderung aus dem Kundenkodex
-- gapType: ZUSÄTZLICH | STRENGER | WIDERSPRUCH
-- severity: KRITISCH | MITTEL | GERING
-- aiRecommendation: AKZEPTIEREN | ABLEHNEN | PRÜFEN
-- ownCodexCoverage: Was steht im eigenen Kodex zu diesem Thema? (Falls nichts: "Nicht abgedeckt")
-- reasoning: Detaillierte Begründung deiner Empfehlung (2-4 Sätze) - erkläre warum dies ein Gap ist
-- risksIfAccepted: Konkrete Risiken bei Akzeptanz (rechtlich, operativ, finanziell)
+KUNDENDOKUMENT (${documentType === 'supplier_code' ? 'Lieferantenkodex' : 'NDA/Geheimhaltung'}):
+${documentContent}
 
-WICHTIG: 
-- Alle Antworten auf Deutsch
-- Sei GROSSZÜGIG und ENTSPANNT bei der Gap-Identifikation - nur echte Lücken melden
-- Qualität vor Quantität - lieber 2-3 echte Gaps als 15 Formulierungsunterschiede
-- Bei Unsicherheit ob es ein Gap ist: Es ist KEIN Gap`;
+---
 
-    const acceptedReqText = acceptedRequirements.length > 0 
-      ? `\n\nBEREITS DAUERHAFT AKZEPTIERTE ANFORDERUNGEN (IGNORIEREN!):
-${acceptedRequirements.map((r: any) => `- ${r.section}: ${r.requirement_text}`).join('\n')}
-
-Diese Anforderungen wurden bereits vom Benutzer dauerhaft akzeptiert und sollen NICHT als Gap identifiziert werden, auch wenn sie im Kundenkodex stehen!`
-      : '';
-
-    const userPrompt = `Analysiere diese beiden Lieferantenkodizes aus Lieferantenperspektive:
-
-MEIN EIGENER LIEFERANTENKODEX:
-${baselineContent}
-
-KUNDENKODEX (Was der Kunde von mir als Lieferant fordert):
-${comparisonContent}${acceptedReqText}
-
-Identifiziere NUR echte Abweichungen und Zusatzanforderungen:
-- Welche Anforderungen im Kundenkodex sind NICHT oder UNZUREICHEND im eigenen Kodex abgedeckt?
-- Welche Anforderungen im Kundenkodex sind STRENGER als im eigenen Kodex?
-- Welche Anforderungen WIDERSPRECHEN dem eigenen Kodex?
-
-IGNORIERE Anforderungen die bereits gleichwertig erfüllt sind!
-
-Liefere eine fokussierte Analyse im JSON-Format mit dieser Struktur:
+Durchsuche das Kundendokument und finde alle Stellen, die mit den Negativpunkten übereinstimmen oder diesen ähnlich sind.
+Gib das Ergebnis als JSON-Array zurück mit der Struktur:
 {
-  "gaps": [
+  "matches": [
     {
-      "section": "Abschnittsname",
-      "customerText": "Konkrete Anforderung aus dem Kundenkodex",
-      "gapType": "ZUSÄTZLICH|STRENGER|WIDERSPRUCH",
-      "severity": "KRITISCH|MITTEL|GERING",
-      "aiRecommendation": "AKZEPTIEREN|ABLEHNEN|PRÜFEN",
-      "ownCodexCoverage": "Was steht im eigenen Kodex dazu?",
-      "reasoning": "Warum ist dies ein Gap? Was fehlt oder weicht ab?",
-      "risksIfAccepted": "Konkrete Risiken bei Akzeptanz"
+      "section": "Abschnitt im Kundendokument",
+      "customerText": "Exakter Text aus dem Kundendokument",
+      "matchedNegativePoint": {
+        "title": "Titel des passenden Negativpunkts",
+        "description": "Beschreibung des Negativpunkts"
+      },
+      "matchConfidence": "HOCH|MITTEL|NIEDRIG"
     }
   ]
 }`;
@@ -142,7 +96,6 @@ Liefere eine fokussierte Analyse im JSON-Format mit dieser Struktur:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0,
         response_format: { type: "json_object" }
       }),
     });
@@ -168,26 +121,46 @@ Liefere eine fokussierte Analyse im JSON-Format mit dieser Struktur:
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const content_text = data.choices[0].message.content;
+    console.log('AI response received, length:', content_text.length);
     
-    console.log('AI Response:', aiResponse);
-    
-    let analysisResult;
+    let parsedResult;
     try {
-      analysisResult = JSON.parse(aiResponse);
+      parsedResult = JSON.parse(content_text);
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      throw new Error('Failed to parse AI analysis result');
+      console.error('Failed to parse AI response as JSON:', content_text.substring(0, 500));
+      throw new Error('Invalid JSON response from AI');
     }
 
-    // Calculate gap statistics
-    const gaps: Gap[] = analysisResult.gaps || [];
-    const criticalGaps = gaps.filter(g => g.severity === 'KRITISCH').length;
-    const mediumGaps = gaps.filter(g => g.severity === 'MITTEL').length;
-    const lowGaps = gaps.filter(g => g.severity === 'GERING').length;
+    const matches = parsedResult.matches || parsedResult;
+    
+    if (!Array.isArray(matches)) {
+      console.error('Expected array of matches, got:', typeof matches);
+      throw new Error('Invalid response format from AI');
+    }
+
+    console.log(`Analysis complete. Found ${matches.length} matches with negative list`);
+
+    // Convert matches to gap format for backwards compatibility
+    const gaps = matches.map((match: Match) => ({
+      section: match.section,
+      customerText: match.customerText,
+      gapType: 'negative_match',
+      severity: match.matchConfidence === 'HOCH' ? 'KRITISCH' : match.matchConfidence === 'MITTEL' ? 'MITTEL' : 'GERING',
+      aiRecommendation: 'ABLEHNEN',
+      reasoning: `Übereinstimmung mit Negativpunkt: ${match.matchedNegativePoint.title}`,
+      matchedNegativePoint: match.matchedNegativePoint,
+      matchConfidence: match.matchConfidence,
+      ownCodexCoverage: 'N/A',
+      risksIfAccepted: 'Dieser Punkt steht auf Ihrer Negativliste'
+    }));
+
+    // Calculate statistics
+    const criticalGaps = gaps.filter((gap: any) => gap.severity === 'KRITISCH').length;
+    const mediumGaps = gaps.filter((gap: any) => gap.severity === 'MITTEL').length;
+    const lowGaps = gaps.filter((gap: any) => gap.severity === 'GERING').length;
 
     const result = {
-      overallCompliance: 0,
       totalGaps: gaps.length,
       criticalGaps,
       mediumGaps,

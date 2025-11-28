@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import extract from "react-pdftotext";
 import LoadingSpinner from "@/components/ui/loading-spinner";
@@ -89,43 +89,31 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (typeError) throw typeError;
 
-      const documentType = typeData.documentType as 'supplier_code' | 'nda';
+      const detectedDocType = typeData.documentType as 'supplier_code' | 'nda';
       
-      console.log('Detected document type:', documentType);
+      console.log('Detected document type:', detectedDocType);
 
-      // Step 2: Get matching baseline document
-      const { data: baseline, error: baselineError } = await supabase
-        .from("baseline_documents")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("document_type", documentType)
-        .maybeSingle();
+      // Step 2: Get the negative list items for this document type
+      const { data: negativeListItems, error: negativeListError } = await supabase
+        .from('negative_list_items')
+        .select('*')
+        .eq('document_type', detectedDocType);
 
-      if (baselineError) throw baselineError;
-
-      if (!baseline) {
-        toast({
-          title: "Fehler",
-          description: `Kein ${documentType === 'nda' ? 'NDA-Template' : 'Lieferantenkodex'} als Datengrundlage gefunden. Bitte hinterlegen Sie zuerst ein Basisdokument.`,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
+      if (negativeListError) {
+        console.error('Error fetching negative list:', negativeListError);
+        throw new Error('Negativliste konnte nicht geladen werden');
       }
 
-      // Step 3: Get accepted requirements for this document type
-      const { data: acceptedRequirements } = await supabase
-        .from("accepted_requirements")
-        .select("requirement_text, section, category")
-        .eq("user_id", userId)
-        .eq("document_type", documentType);
+      if (!negativeListItems || negativeListItems.length === 0) {
+        throw new Error(`Keine Negativpunkte für ${detectedDocType === 'supplier_code' ? 'Lieferantenkodex' : 'NDA'} gefunden. Bitte erstellen Sie zuerst Negativpunkte in der Datengrundlage.`);
+      }
 
-      // Step 4: Save comparison document
+      // Step 3: Save comparison document
       const { data: comparisonDoc, error: comparisonError } = await supabase
         .from("comparison_documents")
         .insert({
           user_id: userId,
-          baseline_document_id: baseline.id,
+          baseline_document_id: '00000000-0000-0000-0000-000000000000',
           title,
           content,
           file_name: fileName || "manual-entry.txt",
@@ -135,26 +123,28 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (comparisonError) throw comparisonError;
 
-      // Step 5: Call edge function for AI analysis
+      // Step 4: Call edge function for AI analysis
+      console.log('Calling analyze-documents function...');
+      console.log('Negative list items:', negativeListItems.length);
       const { data: analysisResult, error: functionError } = await supabase.functions.invoke(
         "analyze-documents",
         {
           body: {
-            baselineContent: baseline.content,
-            comparisonContent: content,
-            acceptedRequirements: acceptedRequirements || [],
+            documentContent: content,
+            negativeListItems: negativeListItems,
+            documentType: detectedDocType
           },
         }
       );
 
       if (functionError) throw functionError;
 
-      // Step 6: Save analysis results
+      // Step 5: Save analysis results
       const { data: analysis, error: analysisError } = await supabase
         .from("gap_analyses")
         .insert({
           user_id: userId,
-          baseline_document_id: baseline.id,
+          baseline_document_id: '00000000-0000-0000-0000-000000000000',
           comparison_document_id: comparisonDoc.id,
           overall_compliance_percentage: 0,
           total_gaps: analysisResult.totalGaps,
@@ -162,7 +152,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
           medium_gaps: analysisResult.mediumGaps,
           low_gaps: analysisResult.lowGaps,
           gaps: analysisResult.gaps,
-          document_type: documentType,
+          document_type: detectedDocType,
         })
         .select()
         .single();
@@ -171,7 +161,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       toast({
         title: "Analyse abgeschlossen",
-        description: `Ihr ${documentType === 'nda' ? 'NDA' : 'Dokument'} wurde erfolgreich analysiert`,
+        description: `Ihr ${detectedDocType === 'nda' ? 'NDA' : 'Dokument'} wurde erfolgreich analysiert`,
       });
 
       onAnalysisComplete(analysis.id, comparisonDoc.id);
@@ -197,7 +187,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Dokument hochladen</h2>
           <p className="text-muted-foreground">
-            Laden Sie ein Kundendokument hoch. Die KI erkennt automatisch, ob es sich um einen Lieferantenkodex oder ein NDA handelt und analysiert es entsprechend.
+            Laden Sie ein Kundendokument hoch. Die KI erkennt automatisch, ob es sich um einen Lieferantenkodex oder ein NDA handelt und prüft es gegen Ihre Negativliste.
           </p>
         </div>
 

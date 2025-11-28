@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Lightbulb, Star, Circle, SkipForward, Copy } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Lightbulb, Circle, SkipForward, Copy, Check, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,19 +15,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface Gap {
   section: string;
   customerText: string;
-  gapType: 'ZUSÄTZLICH' | 'STRENGER' | 'WIDERSPRUCH';
+  gapType: string;
   severity: 'KRITISCH' | 'MITTEL' | 'GERING';
-  aiRecommendation: 'AKZEPTIEREN' | 'ABLEHNEN' | 'PRÜFEN';
+  aiRecommendation: string;
   ownCodexCoverage: string;
   reasoning: string;
   risksIfAccepted: string;
+  matchedNegativePoint?: {
+    title: string;
+    description: string;
+  };
+  matchConfidence?: 'HOCH' | 'MITTEL' | 'NIEDRIG';
 }
 
 interface GapReviewWizardProps {
@@ -63,61 +67,10 @@ const GapReviewWizard = ({
   const allDecisionsMade = gaps.every((_, index) => decisions[index] !== undefined);
   const hasUnansweredQuestions = !allDecisionsMade;
   const progress = ((currentIndex + 1) / gaps.length) * 100;
-  const [showPermanentDialog, setShowPermanentDialog] = useState(false);
   const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
-
-  const hashText = async (text: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
 
   const handleAccept = () => {
     onAccept(currentIndex);
-  };
-
-  const handlePermanentAccept = () => {
-    setShowPermanentDialog(true);
-  };
-
-  const handleConfirmPermanentAccept = async () => {
-    const hash = await hashText(currentGap.customerText);
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Nicht authentifiziert");
-      return;
-    }
-
-    // Try to infer category from section
-    const category = inferCategory(currentGap.section);
-
-    const { error } = await supabase
-      .from('accepted_requirements')
-      .insert({
-        user_id: user.id,
-        section: currentGap.section,
-        requirement_text: currentGap.customerText,
-        requirement_hash: hash,
-        category: category,
-        notes: 'Dauerhaft akzeptiert'
-      });
-
-    if (error) {
-      console.error('Error saving permanent acceptance:', error);
-      toast.error("Fehler beim Speichern");
-    } else {
-      toast.success("Dauerhaft akzeptiert und gespeichert");
-      onAccept(currentIndex);
-      setShowPermanentDialog(false);
-      
-      // Auto-advance to next question
-      if (currentIndex < gaps.length - 1) {
-        setTimeout(() => onNext(), 500);
-      }
-    }
   };
 
   const handleReject = () => {
@@ -137,16 +90,6 @@ const GapReviewWizard = ({
     } else {
       onComplete();
     }
-  };
-
-  const inferCategory = (section: string): string => {
-    const lower = section.toLowerCase();
-    if (lower.includes('umwelt') || lower.includes('klima') || lower.includes('esg')) return 'ESG & Umwelt';
-    if (lower.includes('qualität') || lower.includes('produkt')) return 'Qualität';
-    if (lower.includes('arbeit') || lower.includes('sicher') || lower.includes('gesundheit')) return 'Arbeitsbedingungen';
-    if (lower.includes('ethik') || lower.includes('korruption') || lower.includes('compliance')) return 'Ethik & Compliance';
-    if (lower.includes('daten') || lower.includes('privacy') || lower.includes('schutz')) return 'Datenschutz';
-    return 'Allgemein';
   };
 
   const getSeverityIcon = (severity: string) => {
@@ -169,41 +112,6 @@ const GapReviewWizard = ({
       'GERING': 'secondary' as const,
     };
     return variants[severity as keyof typeof variants] || 'default' as const;
-  };
-
-  const getRecommendationBadge = (recommendation: string) => {
-    const variants = {
-      'AKZEPTIEREN': 'default' as const,
-      'ABLEHNEN': 'destructive' as const,
-      'PRÜFEN': 'secondary' as const,
-    };
-    return variants[recommendation as keyof typeof variants] || 'secondary' as const;
-  };
-
-  const getRecommendationIcon = (recommendation: string) => {
-    switch (recommendation) {
-      case 'AKZEPTIEREN':
-        return <CheckCircle2 className="h-4 w-4" />;
-      case 'ABLEHNEN':
-        return <XCircle className="h-4 w-4" />;
-      case 'PRÜFEN':
-        return <AlertTriangle className="h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
-
-  const getGapTypeBadge = (gapType: string) => {
-    switch (gapType) {
-      case 'ZUSÄTZLICH':
-        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-200">Zusätzliche Anforderung</Badge>;
-      case 'STRENGER':
-        return <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-200">Strengere Anforderung</Badge>;
-      case 'WIDERSPRUCH':
-        return <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200">Widersprüchliche Anforderung</Badge>;
-      default:
-        return null;
-    }
   };
 
   const getStatusIcon = (index: number) => {
@@ -281,22 +189,9 @@ const GapReviewWizard = ({
 
               {/* Content sections */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {getGapTypeBadge(currentGap.gapType)}
-                  <div className="flex items-center gap-2">
-                    {getRecommendationIcon(currentGap.aiRecommendation)}
-                    <Badge variant={getRecommendationBadge(currentGap.aiRecommendation)}>
-                      KI empfiehlt: {currentGap.aiRecommendation}
-                    </Badge>
-                  </div>
-                </div>
-
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Kundenanforderung
-                    </h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Kundenanforderung</h3>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -305,83 +200,63 @@ const GapReviewWizard = ({
                         toast.success("In Zwischenablage kopiert");
                       }}
                     >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Kopieren
+                      <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                    {currentGap.customerText}
-                  </p>
+                  <p className="text-sm">{currentGap.customerText}</p>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Mein Kodex zu diesem Thema
-                  </h3>
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                    {currentGap.ownCodexCoverage}
-                  </p>
-                </div>
+                {currentGap.matchedNegativePoint && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Passender Negativpunkt</h3>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{currentGap.matchedNegativePoint.title}</p>
+                      <p className="text-sm text-muted-foreground">{currentGap.matchedNegativePoint.description}</p>
+                    </div>
+                  </div>
+                )}
+
+                {currentGap.matchConfidence && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Übereinstimmung</h3>
+                    <Badge variant={currentGap.matchConfidence === 'HOCH' ? 'destructive' : currentGap.matchConfidence === 'MITTEL' ? 'default' : 'secondary'}>
+                      {currentGap.matchConfidence}
+                    </Badge>
+                  </div>
+                )}
 
                 <div>
                   <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
-                    Warum ist dies eine Abweichung?
+                    Begründung
                   </h3>
                   <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                     {currentGap.reasoning}
                   </p>
                 </div>
-
-                {currentGap.risksIfAccepted && (
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      Risiken bei Akzeptanz
-                    </h3>
-                    <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                      {currentGap.risksIfAccepted}
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Decision Buttons */}
               <div className="flex gap-2">
                 <Button
                   onClick={handleAccept}
-                  className={cn(
-                    "flex-1",
-                    currentDecision === 'accept' && "ring-2 ring-green-500 ring-offset-2"
-                  )}
-                  variant={currentDecision === 'accept' ? "default" : "outline"}
+                  variant="outline"
+                  className="flex-1"
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  <Check className="h-4 w-4 mr-2" />
                   Akzeptieren
                 </Button>
                 <Button
-                  onClick={handlePermanentAccept}
-                  className="flex-1"
-                  variant="default"
-                >
-                  <Star className="h-4 w-4 mr-2" />
-                  Dauerhaft akzeptieren
-                </Button>
-                <Button
                   onClick={handleReject}
-                  variant={currentDecision === 'reject' ? "destructive" : "outline"}
-                  className={cn(
-                    "flex-1",
-                    currentDecision === 'reject' && "ring-2 ring-red-500 ring-offset-2"
-                  )}
+                  variant="outline"
+                  className="flex-1"
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
+                  <X className="h-4 w-4 mr-2" />
                   Nicht akzeptieren
                 </Button>
               </div>
 
-              {/* Navigation Buttons - direkt unter Entscheidungs-Buttons */}
+              {/* Navigation Buttons */}
               <div className="flex items-center justify-between pt-2">
                 <Button
                   onClick={onPrevious}
@@ -428,30 +303,6 @@ const GapReviewWizard = ({
           </Card>
         </div>
       </div>
-
-      {/* Permanent Accept Dialog */}
-      <AlertDialog open={showPermanentDialog} onOpenChange={setShowPermanentDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Dauerhaft akzeptieren?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Diese Anforderung wird dauerhaft akzeptiert und bei zukünftigen Analysen automatisch als akzeptiert markiert.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              <strong>Anforderung:</strong> {currentGap.customerText}
-            </p>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmPermanentAccept}>
-              <Star className="h-4 w-4 mr-2" />
-              Dauerhaft akzeptieren
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Incomplete Review Dialog */}
       <AlertDialog open={showIncompleteDialog} onOpenChange={setShowIncompleteDialog}>
