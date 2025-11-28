@@ -74,7 +74,7 @@ const PDFViewerWithHighlight = ({ filePath, highlightText }: PDFViewerWithHighli
 
       return () => clearTimeout(timer);
     }
-  }, [highlightText, fileUrl]);
+  }, [highlightText, fileUrl, searchPluginInstance]);
 
   if (loading) {
     return (
