@@ -189,12 +189,6 @@
     "emailCopied": "Email template copied to clipboard.",
     "processes": "Processes"
   },
-  "pdfViewer": {
-    "loading": "Loading PDF...",
-    "loadError": "Error loading PDF",
-    "notAvailable": "PDF preview not available",
-    "notAvailableDesc": "No PDF preview is available for this document."
-  },
   "analysis": {
     "title": "Analysis Result",
     "description": "Check against your negative list completed",
@@ -217,7 +211,6 @@
   },
   "review": {
     "title": "Point-by-Point Review",
-    "documentPreview": "Document Preview",
     "progress": "Progress",
     "of": "of",
     "overview": "Overview",

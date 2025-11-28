@@ -35,7 +35,6 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
   const [decisions, setDecisions] = useState<Record<number, 'accept' | 'reject'>>({});
   const [skippedIndices, setSkippedIndices] = useState<number[]>([]);
   const [sortedGaps, setSortedGaps] = useState<Gap[]>([]);
-  const [filePath, setFilePath] = useState<string | null>(null);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -63,19 +62,6 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
 
       setSortedGaps(sorted as Gap[]);
       setAnalysis({ ...data, gaps: sorted });
-      
-      // Fetch file path from comparison document
-      if (data.comparison_document_id) {
-        const { data: compDoc, error: compError } = await supabase
-          .from("comparison_documents")
-          .select("file_path")
-          .eq("id", data.comparison_document_id)
-          .single();
-
-        if (!compError && compDoc) {
-          setFilePath(compDoc.file_path);
-        }
-      }
       
       setPhase("initial");
       setCurrentIndex(0);
@@ -250,7 +236,6 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
         onNext={handleNext}
         onJumpTo={handleJumpTo}
         onComplete={handleComplete}
-        filePath={filePath}
       />
     );
   }
