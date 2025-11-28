@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface Gap {
   section: string;
@@ -61,6 +62,7 @@ const GapReviewWizard = ({
   onJumpTo,
   onComplete,
 }: GapReviewWizardProps) => {
+  const { t } = useTranslation();
   const currentGap = gaps[currentIndex];
   const isLastGap = currentIndex === gaps.length - 1;
   const currentDecision = decisions[currentIndex];
@@ -127,9 +129,9 @@ const GapReviewWizard = ({
       <Card className="p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-foreground">Punkt-für-Punkt Bewertung</h2>
+            <h2 className="text-2xl font-bold text-foreground">{t('review.title')}</h2>
             <span className="text-lg font-semibold text-muted-foreground">
-              {currentIndex + 1} von {gaps.length}
+              {currentIndex + 1} {t('review.of')} {gaps.length}
             </span>
           </div>
           <Progress value={progress} className="h-3" />
@@ -141,7 +143,7 @@ const GapReviewWizard = ({
         <Card className="p-4 lg:col-span-1 h-fit">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Übersicht
+            {t('review.overview')}
           </h3>
           <ScrollArea className="h-[500px] pr-3">
             <div className="space-y-1">
@@ -161,7 +163,7 @@ const GapReviewWizard = ({
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{gap.section}</div>
                     <Badge variant={getSeverityBadge(gap.severity)} className="mt-1 text-[10px] h-4">
-                      {gap.severity}
+                      {t(`analysis.severity.${gap.severity}`)}
                     </Badge>
                   </div>
                 </button>
@@ -181,7 +183,7 @@ const GapReviewWizard = ({
                   <div className="flex items-center gap-3 flex-wrap">
                     <h3 className="text-2xl font-bold text-foreground">{currentGap.section}</h3>
                     <Badge variant={getSeverityBadge(currentGap.severity)}>
-                      {currentGap.severity}
+                      {t(`analysis.severity.${currentGap.severity}`)}
                     </Badge>
                   </div>
                 </div>
@@ -191,13 +193,13 @@ const GapReviewWizard = ({
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground">Kundenanforderung</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground">{t('review.customerRequirement')}</h3>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
                         navigator.clipboard.writeText(currentGap.customerText);
-                        toast.success("In Zwischenablage kopiert");
+                        toast.success(t('toast.copiedToClipboard'));
                       }}
                     >
                       <Copy className="h-4 w-4" />
@@ -208,7 +210,7 @@ const GapReviewWizard = ({
 
                 {currentGap.matchedNegativePoint && (
                   <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Passender Negativpunkt</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">{t('review.matchedNegativePoint')}</h3>
                     <div className="space-y-1">
                       <p className="text-sm font-medium">{currentGap.matchedNegativePoint.title}</p>
                       <p className="text-sm text-muted-foreground">{currentGap.matchedNegativePoint.description}</p>
@@ -218,9 +220,9 @@ const GapReviewWizard = ({
 
                 {currentGap.matchConfidence && (
                   <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">Übereinstimmung</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">{t('review.matchConfidence')}</h3>
                     <Badge variant={currentGap.matchConfidence === 'HOCH' ? 'destructive' : currentGap.matchConfidence === 'MITTEL' ? 'default' : 'secondary'}>
-                      {currentGap.matchConfidence}
+                      {t(`review.confidence.${currentGap.matchConfidence}`)}
                     </Badge>
                   </div>
                 )}
@@ -228,7 +230,7 @@ const GapReviewWizard = ({
                 <div>
                   <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
-                    Begründung
+                    {t('review.reasoning')}
                   </h3>
                   <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
                     {currentGap.reasoning}
@@ -247,7 +249,7 @@ const GapReviewWizard = ({
                   )}
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  Akzeptieren
+                  {t('review.accept')}
                 </Button>
                 <Button
                   onClick={handleReject}
@@ -258,7 +260,7 @@ const GapReviewWizard = ({
                   )}
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Nicht akzeptieren
+                  {t('review.reject')}
                 </Button>
               </div>
 
@@ -271,7 +273,7 @@ const GapReviewWizard = ({
                   size="lg"
                 >
                   <ChevronLeft className="h-5 w-5 mr-2" />
-                  Zurück
+                  {t('review.previous')}
                 </Button>
 
                 {!isLastGap ? (
@@ -281,7 +283,7 @@ const GapReviewWizard = ({
                     disabled={!currentDecision}
                     size="lg"
                   >
-                    Weiter
+                    {t('review.next')}
                     <ChevronRight className="h-5 w-5 ml-2" />
                   </Button>
                 ) : (
@@ -290,7 +292,7 @@ const GapReviewWizard = ({
                     size="lg"
                     className="font-semibold"
                   >
-                    Bewertung abschließen
+                    {t('review.complete')}
                   </Button>
                 )}
               </div>
@@ -303,7 +305,7 @@ const GapReviewWizard = ({
                 size="sm"
               >
                 <SkipForward className="h-4 w-4 mr-2" />
-                Überspringen (später entscheiden)
+                {t('review.skip')}
               </Button>
             </div>
           </Card>
@@ -314,16 +316,15 @@ const GapReviewWizard = ({
       <AlertDialog open={showIncompleteDialog} onOpenChange={setShowIncompleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Nicht alle Fragen beantwortet</AlertDialogTitle>
+            <AlertDialogTitle>{t('review.unansweredTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Sie haben noch nicht alle Fragen bewertet. 
-              {Object.keys(decisions).length} von {gaps.length} Fragen wurden beantwortet.
+              {t('review.unansweredDesc')} {Object.keys(decisions).length} {t('review.of')} {gaps.length} {t('review.answeredCount')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Weiter bewerten</AlertDialogCancel>
+            <AlertDialogCancel>{t('review.continueReview')}</AlertDialogCancel>
             <AlertDialogAction onClick={onComplete}>
-              Trotzdem abschließen
+              {t('review.completeAnyway')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

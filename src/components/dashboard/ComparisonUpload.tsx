@@ -8,6 +8,7 @@ import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import extract from "react-pdftotext";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import { useTranslation } from "react-i18next";
 
 interface ComparisonUploadProps {
   userId: string;
@@ -18,6 +19,7 @@ interface ComparisonUploadProps {
 const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: ComparisonUploadProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,8 +30,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
     if (!isPDF && !isTXT) {
       toast({
-        title: "Nicht unterstützter Dateityp",
-        description: "Bitte laden Sie eine PDF- oder TXT-Datei hoch.",
+        title: t('toast.fileTypeNotSupported'),
+        description: t('toast.fileTypeDesc'),
         variant: "destructive",
       });
       return;
@@ -53,8 +55,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (!text || text.trim().length === 0) {
         toast({
-          title: "Leeres Dokument",
-          description: "Die Datei scheint leer zu sein oder enthält keinen extrahierbaren Text.",
+          title: t('toast.emptyDocument'),
+          description: t('toast.emptyDocumentText'),
           variant: "destructive",
         });
         setLoading(false);
@@ -64,16 +66,16 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       const generatedTitle = file.name.replace(/\.[^.]+$/, "");
 
       toast({
-        title: "Datei hochgeladen",
-        description: "Analyse wird gestartet...",
+        title: t('toast.fileUploaded'),
+        description: t('toast.analysisStarting'),
       });
 
       await startAnalysis(text, generatedTitle, file.name);
     } catch (error) {
       console.error("File upload error:", error);
       toast({
-        title: "Upload fehlgeschlagen",
-        description: "Die Datei konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.",
+        title: t('toast.uploadFailed'),
+        description: t('toast.uploadRetry'),
         variant: "destructive",
       });
       setLoading(false);
@@ -101,11 +103,11 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
 
       if (negativeListError) {
         console.error('Error fetching negative list:', negativeListError);
-        throw new Error('Negativliste konnte nicht geladen werden');
+        throw new Error(t('toast.negativeListError'));
       }
 
       if (!negativeListItems || negativeListItems.length === 0) {
-        throw new Error(`Keine Negativpunkte für ${detectedDocType === 'supplier_code' ? 'Lieferantenkodex' : 'NDA'} gefunden. Bitte erstellen Sie zuerst Negativpunkte in der Datengrundlage.`);
+        throw new Error(t('toast.negativeListNotFound'));
       }
 
       // Step 3: Save comparison document
@@ -160,16 +162,16 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
       if (analysisError) throw analysisError;
 
       toast({
-        title: "Analyse abgeschlossen",
-        description: `Ihr ${detectedDocType === 'nda' ? 'NDA' : 'Dokument'} wurde erfolgreich analysiert`,
+        title: t('toast.analysisComplete'),
+        description: detectedDocType === 'nda' ? t('toast.ndaAnalyzed') : t('toast.documentAnalyzed'),
       });
 
       onAnalysisComplete(analysis.id, comparisonDoc.id);
     } catch (error: any) {
       console.error("Analysis error:", error);
       toast({
-        title: "Fehler",
-        description: error.message || "Dokument konnte nicht analysiert werden",
+        title: t('toast.error'),
+        description: error.message || t('toast.analysisError'),
         variant: "destructive",
       });
     } finally {
@@ -178,22 +180,22 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
   };
 
   if (loading) {
-    return <LoadingSpinner text="Dokument wird analysiert..." />;
+    return <LoadingSpinner text={t('comparison.analyzing')} />;
   }
 
   return (
     <Card className="p-6 max-w-4xl mx-auto">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Dokument hochladen</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{t('comparison.title')}</h2>
           <p className="text-muted-foreground">
-            Laden Sie ein Kundendokument hoch. Die KI erkennt automatisch, ob es sich um einen Lieferantenkodex oder ein NDA handelt und prüft es gegen Ihre Negativliste.
+            {t('comparison.description')}
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="comparison-file">Dokument hochladen (PDF oder TXT)</Label>
+            <Label htmlFor="comparison-file">{t('comparison.uploadLabel')}</Label>
             <Input
               id="comparison-file"
               type="file"
