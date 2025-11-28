@@ -240,16 +240,22 @@ const GapReviewWizard = ({
               <div className="flex gap-2">
                 <Button
                   onClick={handleAccept}
-                  variant="outline"
-                  className="flex-1"
+                  variant={currentDecision === 'accept' ? "default" : "outline"}
+                  className={cn(
+                    "flex-1",
+                    currentDecision === 'accept' && "bg-green-600 hover:bg-green-700 text-white"
+                  )}
                 >
                   <Check className="h-4 w-4 mr-2" />
                   Akzeptieren
                 </Button>
                 <Button
                   onClick={handleReject}
-                  variant="outline"
-                  className="flex-1"
+                  variant={currentDecision === 'reject' ? "default" : "outline"}
+                  className={cn(
+                    "flex-1",
+                    currentDecision === 'reject' && "bg-red-600 hover:bg-red-700 text-white"
+                  )}
                 >
                   <X className="h-4 w-4 mr-2" />
                   Nicht akzeptieren
