@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Lightbulb, Circle, SkipForward, Copy, Check, X } from "lucide-react";
+import PDFViewerWithHighlight from "./PDFViewerWithHighlight";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,7 @@ interface GapReviewWizardProps {
   onNext: () => void;
   onJumpTo: (index: number) => void;
   onComplete: () => void;
+  filePath?: string | null;
 }
 
 const GapReviewWizard = ({
@@ -61,6 +63,7 @@ const GapReviewWizard = ({
   onNext,
   onJumpTo,
   onComplete,
+  filePath,
 }: GapReviewWizardProps) => {
   const { t } = useTranslation();
   const currentGap = gaps[currentIndex];
@@ -124,7 +127,7 @@ const GapReviewWizard = ({
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-full mx-auto px-4">
       {/* Progress Header */}
       <Card className="p-6">
         <div className="space-y-4">
@@ -138,9 +141,9 @@ const GapReviewWizard = ({
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Question Overview Sidebar */}
-        <Card className="p-4 lg:col-span-1 h-fit">
+        <Card className="p-4 lg:col-span-2 h-fit">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <FileText className="h-4 w-4" />
             {t('review.overview')}
@@ -173,7 +176,7 @@ const GapReviewWizard = ({
         </Card>
 
         {/* Current Gap Card */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-5 space-y-6">
           <Card className="p-8">
             <div className="space-y-6">
               {/* Header with Severity */}
@@ -310,6 +313,19 @@ const GapReviewWizard = ({
             </div>
           </Card>
         </div>
+
+        {/* PDF Viewer */}
+        {filePath && (
+          <div className="lg:col-span-5">
+            <Card className="p-4 h-full">
+              <h3 className="text-sm font-semibold mb-3">{t('review.documentPreview')}</h3>
+              <PDFViewerWithHighlight 
+                filePath={filePath}
+                highlightText={currentGap.customerText}
+              />
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Incomplete Review Dialog */}

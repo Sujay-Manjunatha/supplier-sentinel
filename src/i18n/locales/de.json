@@ -189,6 +189,12 @@
     "emailCopied": "Email-Vorlage wurde in die Zwischenablage kopiert.",
     "processes": "Vorgänge"
   },
+  "pdfViewer": {
+    "loading": "PDF wird geladen...",
+    "loadError": "Fehler beim Laden des PDF",
+    "notAvailable": "PDF-Vorschau nicht verfügbar",
+    "notAvailableDesc": "Für dieses Dokument ist keine PDF-Vorschau verfügbar."
+  },
   "analysis": {
     "title": "Analyse-Ergebnis",
     "description": "Prüfung gegen Ihre Negativliste abgeschlossen",
@@ -211,6 +217,7 @@
   },
   "review": {
     "title": "Punkt-für-Punkt Bewertung",
+    "documentPreview": "Dokumentvorschau",
     "progress": "Fortschritt",
     "of": "von",
     "overview": "Übersicht",
