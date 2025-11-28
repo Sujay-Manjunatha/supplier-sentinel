@@ -168,8 +168,8 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
         </CardTitle>
         <CardDescription>{t('summary.description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold text-primary">{acceptedCount}</div>
             <div className="text-sm text-muted-foreground">{t('summary.accepted')}</div>
@@ -184,7 +184,7 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
           <>
             <Separator />
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div className="text-center p-3 bg-destructive/10 rounded-lg">
                 <div className="text-xl font-bold text-destructive">{criticalRejected}</div>
                 <div className="text-xs text-muted-foreground">{t('summary.criticalSeverity')}</div>

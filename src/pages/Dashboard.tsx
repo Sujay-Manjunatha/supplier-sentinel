@@ -70,7 +70,7 @@ const Dashboard = () => {
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="border-b bg-card/50 backdrop-blur-sm">
-            <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div className="container mx-auto px-6 py-3 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Shield className="h-8 w-8 text-primary" />
                 <h1 className="text-2xl font-bold text-foreground">{t('dashboard.title')}</h1>
@@ -86,7 +86,7 @@ const Dashboard = () => {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 container mx-auto px-4 py-8">
+          <main className="flex-1 container max-w-7xl mx-auto px-6 py-6">
             {activeSection === "data-foundation" && (
               <DataFoundation />
             )}

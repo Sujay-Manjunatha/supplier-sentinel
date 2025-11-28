@@ -124,9 +124,9 @@ const GapReviewWizard = ({
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4 w-full">
       {/* Progress Header */}
-      <Card className="p-6">
+      <Card className="p-4">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-foreground">{t('review.title')}</h2>
@@ -145,7 +145,7 @@ const GapReviewWizard = ({
             <FileText className="h-4 w-4" />
             {t('review.overview')}
           </h3>
-          <ScrollArea className="h-[500px] pr-3">
+          <ScrollArea className="h-[400px] pr-3">
             <div className="space-y-1">
               {gaps.map((gap, index) => (
                 <button
@@ -173,8 +173,8 @@ const GapReviewWizard = ({
         </Card>
 
         {/* Current Gap Card */}
-        <div className="lg:col-span-3 space-y-6">
-          <Card className="p-8">
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="p-6">
             <div className="space-y-6">
               {/* Header with Severity */}
               <div className="flex items-start gap-4">

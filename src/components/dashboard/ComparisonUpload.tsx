@@ -184,8 +184,8 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
   }
 
   return (
-    <Card className="p-6 max-w-4xl mx-auto">
-      <div className="space-y-6">
+    <Card className="p-5 w-full max-w-3xl mx-auto">
+      <div className="space-y-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">{t('comparison.title')}</h2>
           <p className="text-muted-foreground">

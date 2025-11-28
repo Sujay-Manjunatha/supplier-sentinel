@@ -132,7 +132,7 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
 
   if (loading) {
     return (
-      <Card className="p-6 max-w-4xl mx-auto">
+      <Card className="p-6 w-full max-w-4xl mx-auto">
         <p className="text-center text-muted-foreground">{t('analysis.loading')}</p>
       </Card>
     );
@@ -140,7 +140,7 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
 
   if (!analysis) {
     return (
-      <Card className="p-6 max-w-4xl mx-auto">
+      <Card className="p-6 w-full max-w-4xl mx-auto">
         <p className="text-center text-muted-foreground">{t('analysis.noAnalysis')}</p>
       </Card>
     );
@@ -150,7 +150,7 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
 
   if (gaps.length === 0) {
     return (
-      <Card className="p-12 text-center max-w-4xl mx-auto">
+      <Card className="p-12 text-center w-full max-w-4xl mx-auto">
         <div className="space-y-4">
           <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
             <span className="text-3xl">✓</span>
@@ -170,16 +170,16 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
     const lowGaps = gaps.filter((gap) => gap.severity === "GERING").length;
 
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
-        <Card className="p-8">
-          <div className="space-y-6">
+      <div className="space-y-4 w-full max-w-4xl mx-auto">
+        <Card className="p-6">
+          <div className="space-y-4">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-2">{t('analysis.title')}</h2>
               <p className="text-muted-foreground">{t('analysis.description')}</p>
             </div>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <Card className="p-4 border-destructive/20 bg-destructive/5">
                   <div className="space-y-2 text-center">
                     <p className="text-xs font-medium text-muted-foreground">{t('analysis.criticalGaps')}</p>
