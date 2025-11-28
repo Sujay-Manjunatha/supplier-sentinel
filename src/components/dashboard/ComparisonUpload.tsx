@@ -70,7 +70,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         description: t('toast.analysisStarting'),
       });
 
-      await startAnalysis(text, generatedTitle, file.name);
+      await startAnalysis(text, generatedTitle, file.name, file);
     } catch (error) {
       console.error("File upload error:", error);
       toast({
@@ -82,8 +82,30 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
     }
   };
 
-  const startAnalysis = async (content: string, title: string, fileName: string) => {
+  const startAnalysis = async (content: string, title: string, fileName: string, originalFile?: File) => {
     try {
+      let uploadedFilePath: string | null = null;
+
+      // Upload PDF to storage if it's a PDF file
+      if (originalFile && originalFile.type === "application/pdf") {
+        try {
+          const fileExtension = originalFile.name.split('.').pop();
+          const filePath = `${userId}/${crypto.randomUUID()}.${fileExtension}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(filePath, originalFile);
+
+          if (uploadError) {
+            console.error('Error uploading PDF:', uploadError);
+          } else {
+            uploadedFilePath = filePath;
+          }
+        } catch (uploadErr) {
+          console.error('Error during PDF upload:', uploadErr);
+        }
+      }
+
       // Step 1: Detect document type
       const { data: typeData, error: typeError } = await supabase.functions.invoke('detect-document-type', {
         body: { content }
@@ -119,6 +141,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
           title,
           content,
           file_name: fileName || "manual-entry.txt",
+          file_path: uploadedFilePath,
         })
         .select()
         .single();
