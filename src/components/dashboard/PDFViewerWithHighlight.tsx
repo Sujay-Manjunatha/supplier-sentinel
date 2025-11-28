@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Viewer, Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import { searchPlugin } from '@react-pdf-viewer/search';
@@ -19,11 +19,12 @@ const PDFViewerWithHighlight = ({ filePath, highlightText }: PDFViewerWithHighli
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
 
-  const searchPluginInstance = searchPlugin({
+  // Use useMemo to prevent re-creating plugins on every render
+  const searchPluginInstance = useMemo(() => searchPlugin({
     keyword: highlightText || '',
-  });
+  }), []);
 
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const defaultLayoutPluginInstance = useMemo(() => defaultLayoutPlugin(), []);
 
   useEffect(() => {
     const loadPDF = async () => {
@@ -54,16 +55,26 @@ const PDFViewerWithHighlight = ({ filePath, highlightText }: PDFViewerWithHighli
     loadPDF();
   }, [filePath, t]);
 
+  // Highlight text when it changes
   useEffect(() => {
-    if (highlightText && searchPluginInstance) {
-      searchPluginInstance.highlight([
-        {
-          keyword: highlightText,
-          matchCase: false,
-        },
-      ]);
+    if (highlightText && searchPluginInstance && fileUrl) {
+      // Small delay to ensure PDF is loaded
+      const timer = setTimeout(() => {
+        try {
+          searchPluginInstance.highlight([
+            {
+              keyword: highlightText,
+              matchCase: false,
+            },
+          ]);
+        } catch (err) {
+          console.error('Error highlighting text:', err);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
-  }, [highlightText, searchPluginInstance]);
+  }, [highlightText, fileUrl]);
 
   if (loading) {
     return (
@@ -86,7 +97,7 @@ const PDFViewerWithHighlight = ({ filePath, highlightText }: PDFViewerWithHighli
 
   return (
     <div className="h-full">
-      <Worker workerUrl={`https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`}>
+      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
         <div className="h-[800px] border rounded-lg overflow-hidden">
           <Viewer
             fileUrl={fileUrl}
