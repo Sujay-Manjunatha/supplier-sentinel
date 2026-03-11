@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FileText, BarChart3, Shield } from "lucide-react";
@@ -39,8 +38,8 @@ const Index = () => {
           </div>
           <div className="flex gap-2">
             <LanguageSwitcher />
-            <Button variant="outline" onClick={() => navigate('/login')}>
-              {t('common.login')}
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              {t('dashboard.title')}
             </Button>
           </div>
         </div>
@@ -57,11 +56,8 @@ const Index = () => {
             {t('landing.heroDescription')}
           </p>
           <div className="flex gap-4 justify-center pt-6">
-            <Button size="lg" onClick={() => navigate('/signup')} className="text-lg px-8">
+            <Button size="lg" onClick={() => navigate('/dashboard')} className="text-lg px-8">
               {t('landing.getStarted')}
-            </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/login')} className="text-lg px-8">
-              {t('common.login')}
             </Button>
           </div>
         </div>
@@ -92,42 +88,17 @@ const Index = () => {
         <div className="max-w-4xl mx-auto">
           <h3 className="text-3xl font-bold text-center mb-12 text-foreground">{t('landing.howItWorks.title')}</h3>
           <div className="space-y-8">
-            <div className="flex gap-6 items-start">
-              <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
-                1
+            {[1, 2, 3, 4].map((step) => (
+              <div key={step} className="flex gap-6 items-start">
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
+                  {step}
+                </div>
+                <div>
+                  <h4 className="text-xl font-semibold mb-2 text-foreground">{t(`landing.howItWorks.step${step}.title`)}</h4>
+                  <p className="text-muted-foreground">{t(`landing.howItWorks.step${step}.description`)}</p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">{t('landing.howItWorks.step1.title')}</h4>
-                <p className="text-muted-foreground">{t('landing.howItWorks.step1.description')}</p>
-              </div>
-            </div>
-            <div className="flex gap-6 items-start">
-              <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
-                2
-              </div>
-              <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">{t('landing.howItWorks.step2.title')}</h4>
-                <p className="text-muted-foreground">{t('landing.howItWorks.step2.description')}</p>
-              </div>
-            </div>
-            <div className="flex gap-6 items-start">
-              <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
-                3
-              </div>
-              <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">{t('landing.howItWorks.step3.title')}</h4>
-                <p className="text-muted-foreground">{t('landing.howItWorks.step3.description')}</p>
-              </div>
-            </div>
-            <div className="flex gap-6 items-start">
-              <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold flex-shrink-0">
-                4
-              </div>
-              <div>
-                <h4 className="text-xl font-semibold mb-2 text-foreground">{t('landing.howItWorks.step4.title')}</h4>
-                <p className="text-muted-foreground">{t('landing.howItWorks.step4.description')}</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -137,7 +108,7 @@ const Index = () => {
         <Card className="p-12 text-center bg-primary text-primary-foreground">
           <h3 className="text-3xl font-bold mb-4">{t('landing.cta.title')}</h3>
           <p className="text-lg mb-8 opacity-90">{t('landing.cta.description')}</p>
-          <Button size="lg" variant="secondary" onClick={() => navigate('/signup')} className="text-lg px-8">
+          <Button size="lg" variant="secondary" onClick={() => navigate('/dashboard')} className="text-lg px-8">
             {t('landing.cta.button')}
           </Button>
         </Card>

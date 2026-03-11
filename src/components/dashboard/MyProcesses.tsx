@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { completedEvaluationStore, type CompletedEvaluation } from "@/lib/localStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
@@ -11,20 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
-interface CompletedEvaluation {
-  id: string;
-  title: string;
-  customer_name: string;
-  overall_compliance: number;
-  critical_gaps: number;
-  medium_gaps: number;
-  low_gaps: number;
-  completed_at: string;
-  email_template: string | null;
-  gaps: any[];
-  decisions: Record<string, string>;
-}
-
 export default function MyProcesses() {
   const [evaluations, setEvaluations] = useState<CompletedEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,69 +21,22 @@ export default function MyProcesses() {
   const { t, i18n } = useTranslation();
 
   useEffect(() => {
-    loadEvaluations();
+    setEvaluations(completedEvaluationStore.getAll());
+    setLoading(false);
   }, []);
 
-  const loadEvaluations = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("completed_evaluations")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false });
-
-      if (error) throw error;
-      setEvaluations((data as any) || []);
-    } catch (error) {
-      console.error("Error loading evaluations:", error);
-      toast({
-        title: t('toast.error'),
-        description: t('toast.processesLoadError'),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteId) return;
-
-    try {
-      const { error } = await supabase
-        .from("completed_evaluations")
-        .delete()
-        .eq("id", deleteId);
-
-      if (error) throw error;
-
-      setEvaluations(evaluations.filter((e) => e.id !== deleteId));
-      toast({
-        title: t('myProcesses.deleted'),
-        description: t('toast.processDeleted'),
-      });
-    } catch (error) {
-      console.error("Error deleting evaluation:", error);
-      toast({
-        title: t('toast.error'),
-        description: t('toast.processDeleteError'),
-        variant: "destructive",
-      });
-    } finally {
-      setDeleteId(null);
-    }
+    completedEvaluationStore.delete(deleteId);
+    setEvaluations(evaluations.filter((e) => e.id !== deleteId));
+    toast({ title: t('myProcesses.deleted'), description: t('toast.processDeleted') });
+    setDeleteId(null);
   };
 
   const copyEmailTemplate = () => {
     if (selectedEvaluation?.email_template) {
       navigator.clipboard.writeText(selectedEvaluation.email_template);
-      toast({
-        title: t('myProcesses.copied'),
-        description: t('toast.emailTemplateCopied'),
-      });
+      toast({ title: t('myProcesses.copied'), description: t('toast.emailTemplateCopied') });
     }
   };
 
@@ -139,19 +78,12 @@ export default function MyProcesses() {
                 <CardDescription className="flex items-center gap-2 mt-1">
                   <Calendar className="h-3 w-3" />
                   {new Date(evaluation.completed_at).toLocaleDateString(i18n.language === 'de' ? 'de-DE' : 'en-US', {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    day: "2-digit", month: "2-digit", year: "numeric",
+                    hour: "2-digit", minute: "2-digit",
                   })}
                 </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDeleteId(evaluation.id)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => setDeleteId(evaluation.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -185,10 +117,7 @@ export default function MyProcesses() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setSelectedEvaluation(evaluation);
-                  setShowEmailDialog(true);
-                }}
+                onClick={() => { setSelectedEvaluation(evaluation); setShowEmailDialog(true); }}
                 disabled={!evaluation.email_template}
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -224,12 +153,8 @@ export default function MyProcesses() {
             className="min-h-[400px] font-mono text-sm"
           />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
-              {t('common.close')}
-            </Button>
-            <Button onClick={copyEmailTemplate}>
-              {t('summary.copyToClipboard')}
-            </Button>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>{t('common.close')}</Button>
+            <Button onClick={copyEmailTemplate}>{t('summary.copyToClipboard')}</Button>
           </div>
         </DialogContent>
       </Dialog>

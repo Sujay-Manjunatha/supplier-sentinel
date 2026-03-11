@@ -31,20 +31,23 @@ serve(async (req) => {
   }
 
   try {
-    const { documentContent, negativeListItems, documentType } = await req.json();
+    const { documentContent, negativeListItems, documentType, ownCodeOfConduct, auxiliaryDocuments } = await req.json();
     console.log('Starting document analysis...');
     console.log('Document type:', documentType);
     console.log('Negative list items count:', negativeListItems?.length || 0);
+    console.log('Own CoC provided:', !!ownCodeOfConduct);
+    console.log('Auxiliary docs count:', auxiliaryDocuments?.length || 0);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
     }
 
     const systemPrompt = `Du bist ein sorgfältiger Vertragsjurist, nicht eine reine Schlagwortsuche.
 
-ZIEL: Finde nur die Stellen im Dokument, an denen der Inhalt der Negativliste widerspricht oder sie nicht erfüllt.
-WICHTIG: Flagge NICHT die Stellen, an denen das Dokument die gleiche Position wie der Nutzer einnimmt.
+ZIEL: Finde nur die Stellen im Kundendokument, an denen der Inhalt der Negativliste widerspricht oder sie nicht erfüllt.
+KONTEXT: Du erhältst ggf. den eigenen Verhaltenskodex des Nutzers und ergänzende Dokumente. Nutze diese als Referenz, um die Position des Nutzers besser zu verstehen und Konflikte präziser zu erkennen.
+WICHTIG: Flagge NICHT die Stellen, an denen das Kundendokument die gleiche Position wie der Nutzer einnimmt.
 
 ANALYSE-PROZESS:
 
@@ -109,12 +112,30 @@ JSON mit detaillierter Analyse pro Negativpunkt.`;
         ).join('\n\n')
       : 'Keine Negativpunkte definiert';
 
+    const ownCoCSection = ownCodeOfConduct
+      ? `EIGENER VERHALTENSKODEX (Referenzdokument des Nutzers):
+${ownCodeOfConduct}
+
+---
+
+`
+      : '';
+
+    const auxSection = auxiliaryDocuments && auxiliaryDocuments.length > 0
+      ? `ERGÄNZENDE DOKUMENTE DES NUTZERS (Richtlinien, Leitfäden, Compliance-Material):
+${auxiliaryDocuments.map((doc: string, i: number) => `--- Dokument ${i + 1} ---\n${doc}`).join('\n\n')}
+
+---
+
+`
+      : '';
+
     const userPrompt = `NEGATIVLISTE (Punkte die NICHT akzeptiert werden):
 ${negativeListText}
 
 ---
 
-KUNDENDOKUMENT (${documentType === 'supplier_code' ? 'Lieferantenkodex' : 'NDA/Geheimhaltung'}):
+${ownCoCSection}${auxSection}KUNDENDOKUMENT (${documentType === 'supplier_code' ? 'Lieferantenkodex' : 'NDA/Geheimhaltung'}):
 ${documentContent}
 
 ---
@@ -146,14 +167,14 @@ Gib das Ergebnis als JSON zurück mit der Struktur:
 
 WICHTIG: Flagge nur tatsächliche Konflikte (should_flag=true). Wenn Dokument und Negativpunkt die gleiche Position vertreten, setze match_type="NO_CONFLICT" und should_flag=false.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GEMINI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -164,7 +185,7 @@ WICHTIG: Flagge nur tatsächliche Konflikte (should_flag=true). Wenn Dokument un
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      console.error('Gemini API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -172,14 +193,8 @@ WICHTIG: Flagge nur tatsächliche Konflikte (should_flag=true). Wenn Dokument un
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();

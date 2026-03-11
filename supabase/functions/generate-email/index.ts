@@ -11,6 +11,7 @@ interface RejectedGap {
   customerText: string;
   reasoning: string;
   severity: string;
+  externalComment?: string;
 }
 
 serve(async (req) => {
@@ -23,9 +24,9 @@ serve(async (req) => {
     
     console.log('Generating email template for rejected gaps...');
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
     }
 
     const systemPrompt = `Du bist ein professioneller Business-Kommunikationsexperte.
@@ -36,7 +37,7 @@ Erstelle eine KURZE, DIREKTE E-Mail auf Deutsch an einen Lieferanten.
 STRUKTUR (EXAKT SO):
 1. "Sehr geehrter Lieferant,"
 2. Eine Zeile: "Folgende Punkte in Ihrem Dokument können wir nicht akzeptieren:"
-3. Bullet-Liste der abgelehnten Punkte (NUR der Abschnitt und der Text, KEINE Begründung)
+3. Bullet-Liste der abgelehnten Punkte. Pro Punkt: Abschnitt und Text. Falls ein Kommentar vorhanden ist, diesen eingerückt unter dem Punkt einfügen.
 4. "Vielen Dank für Ihr Verständnis."
 5. "Mit freundlichen Grüßen"
 6. "[Ihr Name]"
@@ -44,14 +45,14 @@ STRUKTUR (EXAKT SO):
 WICHTIG:
 - KEINE langen Erklärungen
 - KEINE Begründungen
-- NUR die Liste der Punkte
-- Maximal 10 Zeilen insgesamt
+- NUR die Liste der Punkte (mit optionalen Kommentaren)
 - Direkt und sachlich`;
 
     const rejectedGapsText = rejectedGaps
-      .map((gap: RejectedGap) => 
-        `- ${gap.section}: ${gap.customerText}`
-      )
+      .map((gap: RejectedGap) => {
+        const line = `- ${gap.section}: ${gap.customerText}`;
+        return gap.externalComment ? `${line}\n  → ${gap.externalComment}` : line;
+      })
       .join('\n');
 
     const userPrompt = `Erstelle eine KURZE E-Mail für folgende abgelehnte Punkte:
@@ -60,14 +61,14 @@ ${rejectedGapsText}
 
 Halte dich EXAKT an die vorgegebene Struktur. KEINE langen Erklärungen!`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GEMINI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -77,7 +78,7 @@ Halte dich EXAKT an die vorgegebene Struktur. KEINE langen Erklärungen!`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      console.error('Gemini API error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -85,14 +86,8 @@ Halte dich EXAKT an die vorgegebene Struktur. KEINE langen Erklärungen!`;
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Payment required. Please add credits to your workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();

@@ -106,8 +106,27 @@
     "logoutSuccess": "Successfully logged out"
   },
   "dataFoundation": {
-    "supplierCode": "Supplier Code",
-    "nda": "NDA / Confidentiality"
+    "pageDescription": "Upload your company documents (Code of Conduct, policies, guidelines) and generate a negative list of criteria that will be checked against customer documents.",
+    "yourDocuments": "Your Documents",
+    "documentsDescription": "Upload your Code of Conduct, policies, guidelines, or any compliance documents. These will be used to generate your negative list.",
+    "dropzone": "Drop files here or click to select (multiple allowed)",
+    "uploadSuccess": "{{count}} document(s) uploaded successfully.",
+    "uploadError": "Failed to upload documents.",
+    "confirmDelete": "Delete this document?",
+    "deleteSuccess": "Document deleted.",
+    "deleteError": "Failed to delete document.",
+    "upload": "Upload",
+    "uploadAll": "Upload All ({{count}})",
+    "uploading": "Uploading…",
+    "uploadedOn": "Uploaded",
+    "pendingUpload": "Ready to upload",
+    "generateNegativeList": "Generate Negative List",
+    "generating": "Generating negative list…",
+    "generateHint": "AI will analyze all your uploaded documents and extract the points you wouldn't accept in customer documents.",
+    "generateSuccess": "{{count}} negative point(s) extracted and added to your list.",
+    "generateError": "Failed to generate negative list.",
+    "generateNoPoints": "No Points Found",
+    "generateNoPointsDesc": "The AI could not extract any negative points from your documents. Try uploading more detailed documents."
   },
   "negativeList": {
     "titleSupplier": "Negative List Supplier Code",
@@ -115,6 +134,7 @@
     "description": "These points will be searched for in uploaded customer documents",
     "addPoint": "Add Point",
     "importFile": "Import from File",
+    "deleteAll": "Delete All",
     "importing": "Importing...",
     "noPoints": "No negative points yet. Add points manually or import them from a file.",
     "dragDrop": "Drop file here or click to select",
@@ -164,7 +184,9 @@
     "uploadLabel": "Upload document (PDF or TXT)",
     "analyzing": "Analyzing document...",
     "uploadSuccess": "Document successfully uploaded and analyzed!",
-    "uploadError": "Error during upload"
+    "uploadError": "Error during upload",
+    "gateRequired": "Setup Required",
+    "gateHint": "Please upload your documents and generate a negative list in the Data Foundation before starting a new process."
   },
   "myProcesses": {
     "title": "My Processes",
@@ -285,6 +307,9 @@
     "pointDeleted": "Point successfully deleted",
     "pointDeleteError": "Point could not be deleted",
     "confirmDelete": "Do you really want to delete this point?",
+    "confirmDeleteAll": "Delete ALL negative points? This cannot be undone.",
+    "allPointsDeleted": "All negative points deleted.",
+    "allPointsDeleteError": "Could not delete all points.",
     "fileUploaded": "File uploaded",
     "analysisStarting": "Starting analysis...",
     "uploadFailed": "Upload failed",

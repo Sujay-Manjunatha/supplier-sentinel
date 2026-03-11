@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, XCircle, AlertTriangle, RotateCcw, Mail, Copy, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { CheckCircle2, XCircle, AlertTriangle, RotateCcw, Mail, Copy, Loader2, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { generateEmail, extractCompanyName } from "@/lib/gemini";
+import type { CautionItem } from "@/lib/gemini";
+import type { CommentsMap } from "./RejectedPointsCommentReview";
+import { completedEvaluationStore, comparisonDocStore, draftEmailStore, LOCAL_USER_ID } from "@/lib/localStore";
 
 interface Gap {
   section: string;
@@ -19,10 +22,7 @@ interface Gap {
   ownCodexCoverage: string;
   reasoning: string;
   risksIfAccepted: string;
-  matchedNegativePoint?: {
-    title: string;
-    description: string;
-  };
+  matchedNegativePoint?: { title: string; description: string; };
   matchConfidence?: 'HOCH' | 'MITTEL' | 'NIEDRIG';
 }
 
@@ -32,11 +32,13 @@ interface ReviewSummaryProps {
   analysisId: string | null;
   comparisonDocumentId: string | null;
   onRestart: () => void;
+  rejectedCautionItems?: CautionItem[];
+  comments?: CommentsMap;
 }
 
-export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentId, onRestart }: ReviewSummaryProps) => {
+export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentId, onRestart, rejectedCautionItems = [], comments = {} }: ReviewSummaryProps) => {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
-  const [emailTemplate, setEmailTemplate] = useState("");
+  const [emailTemplate, setEmailTemplate] = useState(() => draftEmailStore.load());
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -44,26 +46,28 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
 
   const acceptedCount = Object.values(decisions).filter(d => d === 'accept').length;
   const rejectedCount = Object.values(decisions).filter(d => d === 'reject').length;
-
   const rejectedGaps = gaps.filter((_, index) => decisions[index] === 'reject');
 
   const generateEmailTemplate = async () => {
     setIsGenerating(true);
     try {
-      const rejectedData = rejectedGaps.map(gap => ({
+      const rejectedData = rejectedGaps.map((gap, index) => ({
         section: gap.section,
         customerText: gap.customerText,
         reasoning: gap.reasoning,
-        severity: gap.severity
+        severity: gap.severity,
+        externalComment: comments[`gap-${index}`]?.external || undefined,
       }));
-
-      const { data, error } = await supabase.functions.invoke('generate-email', {
-        body: { rejectedGaps: rejectedData }
-      });
-
-      if (error) throw error;
-
+      const cautionData = rejectedCautionItems.map((item, index) => ({
+        section: item.section,
+        customerText: item.excerpt,
+        reasoning: item.reason,
+        severity: 'MITTEL' as const,
+        externalComment: comments[`caution-${index}`]?.external || undefined,
+      }));
+      const data = await generateEmail([...rejectedData, ...cautionData]);
       setEmailTemplate(data.emailTemplate);
+      draftEmailStore.save(data.emailTemplate);
       setShowEmailDialog(true);
       toast.success(t('toast.emailGenerated'));
     } catch (error) {
@@ -87,30 +91,14 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
 
     setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error(t('toast.notAuthenticated'));
-        return;
-      }
-
-      const { data: compDoc } = await supabase
-        .from("comparison_documents")
-        .select("content, title")
-        .eq("id", comparisonDocumentId)
-        .single();
+      const compDoc = comparisonDocStore.getById(comparisonDocumentId);
 
       let customerName = "Unknown Company";
       let title = "Supplier Code";
 
       if (compDoc) {
-        const { data: extractData, error: extractError } = await supabase.functions.invoke('extract-company-name', {
-          body: { documentContent: compDoc.content }
-        });
-
-        if (!extractError && extractData?.companyName) {
-          customerName = extractData.companyName;
-        }
-
+        const extractData = await extractCompanyName(compDoc.content);
+        if (extractData?.companyName) customerName = extractData.companyName;
         title = `${customerName} Supplier Code`;
       }
 
@@ -118,24 +106,21 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
       const mediumGaps = rejectedGaps.filter(g => g.severity === 'MITTEL').length;
       const lowGaps = rejectedGaps.filter(g => g.severity === 'GERING').length;
 
-      const { error } = await supabase
-        .from("completed_evaluations")
-        .insert({
-          user_id: user.id,
-          comparison_document_id: comparisonDocumentId,
-          customer_name: customerName,
-          title: title,
-          gaps: gaps as any,
-          decisions: decisions as any,
-          email_template: emailTemplate || null,
-          overall_compliance: 0,
-          critical_gaps: criticalGaps,
-          medium_gaps: mediumGaps,
-          low_gaps: lowGaps,
-        });
+      completedEvaluationStore.insert({
+        user_id: LOCAL_USER_ID,
+        comparison_document_id: comparisonDocumentId,
+        customer_name: customerName,
+        title,
+        gaps: gaps as any,
+        decisions: decisions as any,
+        email_template: emailTemplate || null,
+        overall_compliance: 0,
+        critical_gaps: criticalGaps,
+        medium_gaps: mediumGaps,
+        low_gaps: lowGaps,
+      });
 
-      if (error) throw error;
-
+      draftEmailStore.clear();
       setIsSaved(true);
       toast.success(t('toast.evaluationSaved'));
     } catch (error) {
@@ -169,7 +154,8 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
         <CardDescription>{t('summary.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3">
           <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold text-primary">{acceptedCount}</div>
             <div className="text-sm text-muted-foreground">{t('summary.accepted')}</div>
@@ -178,12 +164,25 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
             <div className="text-2xl font-bold text-destructive">{rejectedCount}</div>
             <div className="text-sm text-muted-foreground">{t('summary.rejected')}</div>
           </div>
+          <div className="text-center p-4 bg-amber-500/10 rounded-lg">
+            <div className="text-2xl font-bold text-amber-600">{rejectedCautionItems.length}</div>
+            <div className="text-sm text-muted-foreground">Cautions Rejected</div>
+          </div>
         </div>
 
+        {/* All clear */}
+        {rejectedCount === 0 && rejectedCautionItems.length === 0 && (
+          <div className="text-center py-4">
+            <CheckCircle2 className="h-12 w-12 mx-auto text-primary mb-3" />
+            <h3 className="text-lg font-semibold mb-1">{t('summary.allAccepted')}</h3>
+            <p className="text-muted-foreground text-sm">{t('summary.allAcceptedMessage')}</p>
+          </div>
+        )}
+
+        {/* Rejected NL gaps */}
         {rejectedCount > 0 && (
           <>
             <Separator />
-            
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center p-3 bg-destructive/10 rounded-lg">
                 <div className="text-xl font-bold text-destructive">{criticalRejected}</div>
@@ -198,104 +197,106 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
                 <div className="text-xs text-muted-foreground">{t('summary.lowSeverity')}</div>
               </div>
             </div>
-
             <Separator />
-
-            <div className="space-y-4">
+            <div className="space-y-3">
               <h3 className="font-semibold text-lg">{t('summary.rejectedPoints')}</h3>
-              
-              <div className="space-y-4">
-                {rejectedGaps.map((gap, index) => (
-                  <div key={index} className="border-l-4 border-destructive pl-4 py-2">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-semibold text-sm">{gap.section}</h4>
-                        <Badge variant={getSeverityBadge(gap.severity)} className="mt-1">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          {t(`analysis.severity.${gap.severity}`)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="space-y-2 mt-2">
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">{t('summary.customerRequirement')}:</p>
-                        <p className="text-sm">{gap.customerText}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">{t('summary.rejectionReason')}:</p>
-                        <p className="text-sm">{gap.reasoning}</p>
-                      </div>
+              {rejectedGaps.map((gap, index) => (
+                <div key={index} className="border-l-4 border-destructive pl-4 py-2">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h4 className="font-semibold text-sm">{gap.section}</h4>
+                      <Badge variant={getSeverityBadge(gap.severity)} className="mt-1">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        {t(`analysis.severity.${gap.severity}`)}
+                      </Badge>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              <Separator />
-
-              <div className="flex gap-2">
-                <Button 
-                  onClick={generateEmailTemplate} 
-                  variant="default" 
-                  className="flex-1"
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {t('summary.generating')}
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4 mr-2" />
-                      {t('summary.generateEmail')}
-                    </>
-                  )}
-                </Button>
-                <Button onClick={onRestart} variant="outline" className="flex-1">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  {t('summary.restart')}
-                </Button>
-              </div>
-
-              <Button 
-                onClick={saveEvaluation} 
-                variant="secondary" 
-                className="w-full"
-                disabled={isSaving || isSaved}
-                size="lg"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {t('summary.saving')}
-                  </>
-                ) : isSaved ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {t('summary.saved')}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {t('summary.saveEvaluation')}
-                  </>
-                )}
-              </Button>
+                  <div className="space-y-2 mt-2">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">{t('summary.customerRequirement')}:</p>
+                      <p className="text-sm">{gap.customerText}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">{t('summary.rejectionReason')}:</p>
+                      <p className="text-sm">{gap.reasoning}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
 
-        {rejectedCount === 0 && (
-          <div className="text-center py-8">
-            <CheckCircle2 className="h-12 w-12 mx-auto text-primary mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t('summary.allAccepted')}</h3>
-            <p className="text-muted-foreground mb-6">{t('summary.allAcceptedMessage')}</p>
-            <Button onClick={onRestart} variant="outline">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              {t('summary.newAnalysis')}
-            </Button>
-          </div>
+        {/* Rejected caution points */}
+        {rejectedCautionItems.length > 0 && (
+          <>
+            <Separator />
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Eye className="h-5 w-5 text-amber-500" />
+                Rejected Points to Watch
+              </h3>
+              {rejectedCautionItems.map((item, index) => (
+                <div key={index} className="border-l-4 border-amber-500 pl-4 py-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-semibold text-sm">{item.topic}</h4>
+                    <Badge variant="outline" className="text-[10px]">{item.section}</Badge>
+                  </div>
+                  <p className="text-xs italic text-muted-foreground mb-1">"{item.excerpt}"</p>
+                  <p className="text-xs text-muted-foreground">{item.reason}</p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
+
+        {/* Actions */}
+        <Separator />
+        <div className="space-y-3">
+          {(rejectedCount > 0 || rejectedCautionItems.length > 0) && (
+            <div className="flex gap-2">
+              {emailTemplate ? (
+                <Button onClick={() => setShowEmailDialog(true)} variant="default" className="flex-1">
+                  <Mail className="h-4 w-4 mr-2" />
+                  View Email Draft
+                </Button>
+              ) : (
+                <Button onClick={generateEmailTemplate} variant="default" className="flex-1" disabled={isGenerating}>
+                  {isGenerating ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t('summary.generating')}</>
+                  ) : (
+                    <><Mail className="h-4 w-4 mr-2" />{t('summary.generateEmail')}</>
+                  )}
+                </Button>
+              )}
+              <Button onClick={onRestart} variant="outline" className="flex-1">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {t('summary.restart')}
+              </Button>
+            </div>
+          )}
+          {rejectedCount === 0 && rejectedCautionItems.length === 0 && (
+            <Button onClick={onRestart} variant="outline" className="w-full">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              {t('summary.restart')}
+            </Button>
+          )}
+          <Button
+            onClick={saveEvaluation}
+            variant="secondary"
+            className="w-full"
+            disabled={isSaving || isSaved}
+            size="lg"
+          >
+            {isSaving ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t('summary.saving')}</>
+            ) : isSaved ? (
+              <><CheckCircle2 className="h-4 w-4 mr-2" />{t('summary.saved')}</>
+            ) : (
+              <><CheckCircle2 className="h-4 w-4 mr-2" />{t('summary.saveEvaluation')}</>
+            )}
+          </Button>
+        </div>
       </CardContent>
 
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
@@ -307,10 +308,16 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
           <div className="space-y-4">
             <Textarea
               value={emailTemplate}
-              onChange={(e) => setEmailTemplate(e.target.value)}
+              onChange={(e) => {
+                setEmailTemplate(e.target.value);
+                draftEmailStore.save(e.target.value);
+              }}
               className="min-h-[400px] font-mono text-sm"
             />
             <div className="flex gap-2">
+              <Button onClick={generateEmailTemplate} variant="outline" disabled={isGenerating} className="shrink-0">
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
               <Button onClick={copyToClipboard} className="flex-1">
                 <Copy className="h-4 w-4 mr-2" />
                 {t('summary.copyToClipboard')}

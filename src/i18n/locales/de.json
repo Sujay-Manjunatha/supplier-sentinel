@@ -106,8 +106,27 @@
     "logoutSuccess": "Erfolgreich abgemeldet"
   },
   "dataFoundation": {
-    "supplierCode": "Lieferantenkodex",
-    "nda": "NDA / Geheimhaltung"
+    "pageDescription": "Laden Sie Ihre Unternehmensdokumente hoch (Verhaltenskodex, Richtlinien, Leitfäden) und generieren Sie eine Negativliste mit Kriterien, die gegen Kundendokumente geprüft werden.",
+    "yourDocuments": "Ihre Dokumente",
+    "documentsDescription": "Laden Sie Ihren Verhaltenskodex, Richtlinien, Leitfäden oder Compliance-Dokumente hoch. Diese werden zur Generierung Ihrer Negativliste verwendet.",
+    "dropzone": "Dateien hier ablegen oder klicken zum Auswählen (mehrere möglich)",
+    "uploadSuccess": "{{count}} Dokument(e) erfolgreich hochgeladen.",
+    "uploadError": "Fehler beim Hochladen der Dokumente.",
+    "confirmDelete": "Dieses Dokument löschen?",
+    "deleteSuccess": "Dokument gelöscht.",
+    "deleteError": "Fehler beim Löschen des Dokuments.",
+    "upload": "Hochladen",
+    "uploadAll": "Alle hochladen ({{count}})",
+    "uploading": "Wird hochgeladen…",
+    "uploadedOn": "Hochgeladen am",
+    "pendingUpload": "Bereit zum Hochladen",
+    "generateNegativeList": "Negativliste generieren",
+    "generating": "Negativliste wird generiert…",
+    "generateHint": "Die KI analysiert alle hochgeladenen Dokumente und extrahiert die Punkte, die Sie in Kundendokumenten nicht akzeptieren würden.",
+    "generateSuccess": "{{count}} Negativpunkt(e) extrahiert und zur Liste hinzugefügt.",
+    "generateError": "Fehler beim Generieren der Negativliste.",
+    "generateNoPoints": "Keine Punkte gefunden",
+    "generateNoPointsDesc": "Die KI konnte keine Negativpunkte aus Ihren Dokumenten extrahieren. Versuchen Sie, detailliertere Dokumente hochzuladen."
   },
   "negativeList": {
     "titleSupplier": "Negativliste Lieferantenkodex",
@@ -115,6 +134,7 @@
     "description": "Diese Punkte werden in hochgeladenen Kundendokumenten gesucht",
     "addPoint": "Punkt hinzufügen",
     "importFile": "Import aus Datei",
+    "deleteAll": "Alle löschen",
     "importing": "Importiere...",
     "noPoints": "Noch keine Negativpunkte vorhanden. Fügen Sie Punkte manuell hinzu oder importieren Sie sie aus einer Datei.",
     "dragDrop": "Datei hier ablegen oder klicken zum Auswählen",
@@ -164,7 +184,9 @@
     "uploadLabel": "Dokument hochladen (PDF oder TXT)",
     "analyzing": "Dokument wird analysiert...",
     "uploadSuccess": "Dokument erfolgreich hochgeladen und analysiert!",
-    "uploadError": "Fehler beim Hochladen"
+    "uploadError": "Fehler beim Hochladen",
+    "gateRequired": "Einrichtung erforderlich",
+    "gateHint": "Bitte laden Sie Ihre Dokumente hoch und generieren Sie eine Negativliste im Bereich Datenbasis, bevor Sie einen neuen Vorgang starten."
   },
   "myProcesses": {
     "title": "Meine Vorgänge",
@@ -285,6 +307,9 @@
     "pointDeleted": "Punkt erfolgreich gelöscht",
     "pointDeleteError": "Punkt konnte nicht gelöscht werden",
     "confirmDelete": "Möchten Sie diesen Punkt wirklich löschen?",
+    "confirmDeleteAll": "ALLE Negativpunkte löschen? Dies kann nicht rückgängig gemacht werden.",
+    "allPointsDeleted": "Alle Negativpunkte gelöscht.",
+    "allPointsDeleteError": "Punkte konnten nicht gelöscht werden.",
     "fileUploaded": "Datei hochgeladen",
     "analysisStarting": "Analyse wird gestartet...",
     "uploadFailed": "Upload fehlgeschlagen",

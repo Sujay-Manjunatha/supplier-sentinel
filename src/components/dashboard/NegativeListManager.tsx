@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,14 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import extract from "react-pdftotext";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 import { useTranslation } from "react-i18next";
-
-interface NegativeListItem {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  created_at: string;
-}
+import { extractNegativePoints } from "@/lib/gemini";
+import { negativeListStore, LOCAL_USER_ID, type NegativeListItem } from "@/lib/localStore";
 
 interface NegativeListManagerProps {
   documentType: 'supplier_code' | 'nda';
@@ -33,40 +27,34 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  const categoryKeys = documentType === 'supplier_code' 
-    ? Object.keys(t('negativeList.categories.supplier', { returnObjects: true }))
-    : Object.keys(t('negativeList.categories.nda', { returnObjects: true }));
-  
-  const categories = documentType === 'supplier_code'
-    ? categoryKeys.map(key => t(`negativeList.categories.supplier.${key}`))
-    : categoryKeys.map(key => t(`negativeList.categories.nda.${key}`));
+  const categoryPrefix = documentType === 'supplier_code' ? 'negativeList.categories.supplier' : 'negativeList.categories.nda';
+  const categoryKeys = Object.keys(t(categoryPrefix, { returnObjects: true }) as Record<string, string>);
+  const categories = categoryKeys.map(key => t(`${categoryPrefix}.${key}`));
+
+  const translateCategory = (dbCategory: string): string => {
+    const translated = t(`${categoryPrefix}.${dbCategory}`, { defaultValue: '' });
+    if (translated && translated !== '') return translated;
+    return dbCategory;
+  };
 
   useEffect(() => {
     fetchItems();
   }, [documentType]);
 
-  const fetchItems = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  useEffect(() => {
+    const handler = () => fetchItems();
+    window.addEventListener('negative-list-updated', handler);
+    return () => window.removeEventListener('negative-list-updated', handler);
+  }, []);
 
-      const { data, error } = await supabase
-        .from('negative_list_items')
-        .select('*')
-        .eq('document_type', documentType)
-        .order('category', { ascending: true })
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setItems(data || []);
-    } catch (error) {
-      console.error('Error fetching items:', error);
-      toast({
-        title: t('toast.error'),
-        description: t('toast.errorLoadingList'),
-        variant: "destructive"
-      });
-    }
+  const fetchItems = () => {
+    const data = negativeListStore.getAll(documentType);
+    const sorted = [...data].sort((a, b) => {
+      if (a.category < b.category) return -1;
+      if (a.category > b.category) return 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    setItems(sorted);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,7 +64,6 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
     setLoading(true);
     try {
       let content = '';
-
       if (file.type === 'application/pdf') {
         content = await extract(file);
       } else if (file.type === 'text/plain') {
@@ -85,29 +72,17 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
         throw new Error(t('toast.fileTypeNotSupported'));
       }
 
-      const { data: extractedData, error: extractError } = await supabase.functions.invoke(
-        'extract-negative-points',
-        { body: { content, documentType } }
-      );
-
-      if (extractError) throw extractError;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error(t('toast.notLoggedIn'));
+      const extractedData = await extractNegativePoints(content, documentType);
 
       const pointsToInsert = extractedData.points.map((point: any) => ({
-        user_id: user.id,
+        user_id: LOCAL_USER_ID,
         document_type: documentType,
         title: point.title,
         description: point.description,
-        category: point.category
+        category: point.category,
       }));
 
-      const { error: insertError } = await supabase
-        .from('negative_list_items')
-        .insert(pointsToInsert);
-
-      if (insertError) throw insertError;
+      negativeListStore.insert(pointsToInsert);
 
       toast({
         title: t('toast.success'),
@@ -128,7 +103,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
     }
   };
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       toast({
         title: t('toast.error'),
@@ -138,91 +113,40 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
       return;
     }
 
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error(t('toast.notLoggedIn'));
+    negativeListStore.insert([{
+      user_id: LOCAL_USER_ID,
+      document_type: documentType,
+      title: formData.title,
+      description: formData.description,
+      category: formData.category,
+    }]);
 
-      const { error } = await supabase
-        .from('negative_list_items')
-        .insert({
-          user_id: user.id,
-          document_type: documentType,
-          title: formData.title,
-          description: formData.description,
-          category: formData.category
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: t('toast.success'),
-        description: t('toast.pointAdded')
-      });
-
-      setFormData({ title: '', description: '', category: t('negativeList.categories.supplier.Sonstiges') });
-      setShowAddForm(false);
-      fetchItems();
-    } catch (error: any) {
-      console.error('Error adding item:', error);
-      toast({
-        title: t('toast.error'),
-        description: t('toast.pointAddError'),
-        variant: "destructive"
-      });
-    }
+    toast({ title: t('toast.success'), description: t('toast.pointAdded') });
+    setFormData({ title: '', description: '', category: 'Sonstiges' });
+    setShowAddForm(false);
+    fetchItems();
   };
 
-  const handleUpdate = async (id: string, updates: Partial<NegativeListItem>) => {
-    try {
-      const { error } = await supabase
-        .from('negative_list_items')
-        .update(updates)
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: t('toast.success'),
-        description: t('toast.pointUpdated')
-      });
-
-      setEditingId(null);
-      fetchItems();
-    } catch (error: any) {
-      console.error('Error updating item:', error);
-      toast({
-        title: t('toast.error'),
-        description: t('toast.pointUpdateError'),
-        variant: "destructive"
-      });
-    }
+  const handleUpdate = (id: string, updates: Partial<NegativeListItem>) => {
+    negativeListStore.update(id, updates);
+    toast({ title: t('toast.success'), description: t('toast.pointUpdated') });
+    setEditingId(null);
+    fetchItems();
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm(t('toast.confirmDelete'))) return;
+    negativeListStore.delete(id);
+    toast({ title: t('toast.success'), description: t('toast.pointDeleted') });
+    fetchItems();
+  };
 
-    try {
-      const { error } = await supabase
-        .from('negative_list_items')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: t('toast.success'),
-        description: t('toast.pointDeleted')
-      });
-
-      fetchItems();
-    } catch (error: any) {
-      console.error('Error deleting item:', error);
-      toast({
-        title: t('toast.error'),
-        description: t('toast.pointDeleteError'),
-        variant: "destructive"
-      });
-    }
+  const handleDeleteAll = () => {
+    if (items.length === 0) return;
+    if (!confirm(t('toast.confirmDeleteAll'))) return;
+    negativeListStore.deleteByType(documentType);
+    toast({ title: t('toast.success'), description: t('toast.allPointsDeleted') });
+    fetchItems();
   };
 
   const groupedItems = items.reduce((acc, item) => {
@@ -231,9 +155,7 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
     return acc;
   }, {} as Record<string, NegativeListItem[]>);
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-4">
@@ -243,12 +165,10 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
             <h3 className="text-lg font-semibold mb-2">
               {documentType === 'supplier_code' ? t('negativeList.titleSupplier') : t('negativeList.titleNda')}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {t('negativeList.description')}
-            </p>
+            <p className="text-sm text-muted-foreground">{t('negativeList.description')}</p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={() => setShowAddForm(!showAddForm)} variant="outline">
               <Plus className="h-4 w-4 mr-2" />
               {t('negativeList.addPoint')}
@@ -257,14 +177,15 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
               <label>
                 <Upload className="h-4 w-4 mr-2" />
                 {t('negativeList.importFile')}
-                <input
-                  type="file"
-                  accept=".pdf,.txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+                <input type="file" accept=".pdf,.txt" onChange={handleFileUpload} className="hidden" />
               </label>
             </Button>
+            {items.length > 0 && (
+              <Button variant="outline" onClick={handleDeleteAll} className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('negativeList.deleteAll')}
+              </Button>
+            )}
           </div>
 
           {showAddForm && (
@@ -294,8 +215,8 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {categoryKeys.map((key, idx) => (
+                        <SelectItem key={key} value={key}>{categories[idx]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -318,16 +239,14 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
 
       {Object.keys(groupedItems).length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground">
-            {t('negativeList.noPoints')}
-          </p>
+          <p className="text-muted-foreground">{t('negativeList.noPoints')}</p>
         </Card>
       ) : (
         <div className="space-y-3">
           {Object.entries(groupedItems).map(([category, categoryItems]) => (
             <Card key={category} className="p-4">
               <h4 className="font-semibold mb-3 flex items-center gap-2">
-                {category}
+                {translateCategory(category)}
                 <span className="text-xs text-muted-foreground">({categoryItems.length})</span>
               </h4>
               <div className="space-y-2">
@@ -349,30 +268,27 @@ const NegativeListManager = ({ documentType }: NegativeListManagerProps) => {
                         </Button>
                       </div>
                     ) : (
-                      <>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium">{item.title}</p>
-                            <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+                            {item.source === 'review' && (
+                              <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30">
+                                Added from review
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              onClick={() => setEditingId(item.id)}
-                              variant="ghost"
-                              size="sm"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              onClick={() => handleDelete(item.id)}
-                              variant="ghost"
-                              size="sm"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                         </div>
-                      </>
+                        <div className="flex gap-1">
+                          <Button onClick={() => setEditingId(item.id)} variant="ghost" size="sm">
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button onClick={() => handleDelete(item.id)} variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}

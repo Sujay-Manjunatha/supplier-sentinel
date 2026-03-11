@@ -20,9 +20,9 @@ serve(async (req) => {
     const { content, documentType } = await req.json();
     console.log('Extracting negative points from document, type:', documentType);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is not configured');
     }
 
     const systemPrompt = `Du bist ein Experte für die Analyse von Compliance-Dokumenten.
@@ -67,14 +67,14 @@ ${content}
 
 Extrahiere alle relevanten Punkte und gib sie als JSON-Array zurück.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GEMINI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -84,21 +84,15 @@ Extrahiere alle relevanten Punkte und gib sie als JSON-Array zurück.`;
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error:', response.status, errorText);
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit erreicht. Bitte versuchen Sie es später erneut.' }),
+          JSON.stringify({ error: 'Rate limit reached. Please try again later.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Zahlungspflichtig. Bitte fügen Sie Guthaben zu Ihrem Lovable AI Workspace hinzu.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI Gateway Error:', response.status, errorText);
-      throw new Error(`AI Gateway returned ${response.status}`);
+      throw new Error(`Gemini API returned ${response.status}`);
     }
 
     const data = await response.json();

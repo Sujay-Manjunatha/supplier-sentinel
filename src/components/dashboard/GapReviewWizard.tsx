@@ -2,8 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, FileText, CheckCircle2, XCircle, Lightbulb, Circle, SkipForward, Copy, Check, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Info, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Lightbulb, Circle, SkipForward, Copy, Check, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -87,10 +86,15 @@ const GapReviewWizard = ({
   };
 
   const handleCompleteClick = () => {
-    if (hasUnansweredQuestions) {
-      setShowIncompleteDialog(true);
-    } else {
-      onComplete();
+    try {
+      if (hasUnansweredQuestions) {
+        setShowIncompleteDialog(true);
+      } else {
+        onComplete();
+      }
+    } catch (e) {
+      console.error("Error completing review:", e);
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
@@ -138,42 +142,9 @@ const GapReviewWizard = ({
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Question Overview Sidebar */}
-        <Card className="p-4 lg:col-span-1 h-fit">
-          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            {t('review.overview')}
-          </h3>
-          <ScrollArea className="h-[400px] pr-3">
-            <div className="space-y-1">
-              {gaps.map((gap, index) => (
-                <button
-                  key={index}
-                  onClick={() => onJumpTo(index)}
-                  className={cn(
-                    "w-full text-left text-xs p-3 rounded-md transition-colors flex items-start gap-2",
-                    currentIndex === index && "bg-primary/10 border border-primary/20",
-                    currentIndex !== index && "hover:bg-muted/50"
-                  )}
-                >
-                  <div className="mt-0.5 flex-shrink-0">
-                    {getStatusIcon(index)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{gap.section}</div>
-                    <Badge variant={getSeverityBadge(gap.severity)} className="mt-1 text-[10px] h-4">
-                      {t(`analysis.severity.${gap.severity}`)}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
-        </Card>
-
+      <div>
         {/* Current Gap Card */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="space-y-4">
           <Card className="p-6">
             <div className="space-y-6">
               {/* Header with Severity */}
@@ -323,7 +294,7 @@ const GapReviewWizard = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('review.continueReview')}</AlertDialogCancel>
-            <AlertDialogAction onClick={onComplete}>
+            <AlertDialogAction onClick={() => { try { onComplete(); } catch (e) { console.error(e); toast.error("Something went wrong. Please try again."); } }}>
               {t('review.completeAnyway')}
             </AlertDialogAction>
           </AlertDialogFooter>
