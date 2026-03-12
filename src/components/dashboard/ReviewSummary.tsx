@@ -133,6 +133,9 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
         low_gaps: lowGaps,
         cautions_accepted: allCautionItems.length - rejectedCautionItems.length,
         cautions_rejected: rejectedCautionItems.length,
+        cautions_critical: rejectedCautionItems.filter(c => c.severity === 'KRITISCH').length,
+        cautions_medium: rejectedCautionItems.filter(c => c.severity === 'MITTEL').length,
+        cautions_low: rejectedCautionItems.filter(c => c.severity === 'GERING').length,
       });
 
       try { draftEmailStore.clear(); } catch { /* ignore */ }
@@ -172,7 +175,7 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
         {/* Stats — clickable to expand each section */}
         <div className="grid grid-cols-3 gap-3">
           <button
-            onClick={() => acceptedCount > 0 && setShowAccepted(v => !v)}
+            onClick={() => { if (acceptedCount > 0) { setShowAccepted(v => !v); setShowRejected(false); setShowCautions(false); } }}
             className={`text-center p-4 rounded-lg transition-colors ${acceptedCount > 0 ? 'bg-muted hover:bg-muted/70 cursor-pointer' : 'bg-muted cursor-default'}`}
           >
             <div className="text-2xl font-bold text-primary">{acceptedCount}</div>
@@ -182,7 +185,7 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
             </div>
           </button>
           <button
-            onClick={() => rejectedCount > 0 && setShowRejected(v => !v)}
+            onClick={() => { if (rejectedCount > 0) { setShowRejected(v => !v); setShowAccepted(false); setShowCautions(false); } }}
             className={`text-center p-4 rounded-lg transition-colors ${rejectedCount > 0 ? 'bg-muted hover:bg-muted/70 cursor-pointer' : 'bg-muted cursor-default'}`}
           >
             <div className="text-2xl font-bold text-destructive">{rejectedCount}</div>
@@ -192,7 +195,7 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
             </div>
           </button>
           <button
-            onClick={() => rejectedCautionItems.length > 0 && setShowCautions(v => !v)}
+            onClick={() => { if (rejectedCautionItems.length > 0) { setShowCautions(v => !v); setShowAccepted(false); setShowRejected(false); } }}
             className={`text-center p-4 rounded-lg transition-colors ${rejectedCautionItems.length > 0 ? 'bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer' : 'bg-amber-500/10 cursor-default'}`}
           >
             <div className="text-2xl font-bold text-amber-600">{rejectedCautionItems.length}</div>

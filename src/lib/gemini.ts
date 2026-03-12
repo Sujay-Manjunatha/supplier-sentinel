@@ -546,6 +546,7 @@ export interface CautionItem {
   reason: string;
   suggestedTitle: string;
   suggestedDescription: string;
+  severity?: 'KRITISCH' | 'MITTEL' | 'GERING';
 }
 
 export async function scanForCautions(
@@ -577,7 +578,8 @@ OUTPUT as JSON:
       "excerpt": "Relevant text passage (1-3 sentences)",
       "reason": "Why this is relevant/risky for the supplier (1-2 sentences)",
       "suggestedTitle": "Short title for negative list entry",
-      "suggestedDescription": "Description: We do not accept X / We require Y..."
+      "suggestedDescription": "Description: We do not accept X / We require Y...",
+      "severity": "KRITISCH | MITTEL | GERING"
     }
   ]
 }`;

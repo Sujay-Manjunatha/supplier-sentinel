@@ -131,7 +131,17 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         scanForCautions(content, detectedDocType),
       ]);
 
-      // Step 5: Save analysis results
+      // Step 5: Filter caution items that are already in the negative list
+      const existingNlTitles = new Set(
+        negativeListItems.map(n => n.title.toLowerCase().trim())
+      );
+      const filteredCautions = cautionResult.cautions.filter((item: any) => {
+        const suggestedTitle = (item.suggestedTitle || '').toLowerCase().trim();
+        const topic = (item.topic || '').toLowerCase().trim();
+        return !existingNlTitles.has(suggestedTitle) && !existingNlTitles.has(topic);
+      });
+
+      // Step 6: Save analysis results
       const analysis = gapAnalysisStore.insert({
         user_id: LOCAL_USER_ID,
         baseline_document_id: '00000000-0000-0000-0000-000000000000',
@@ -142,7 +152,7 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         medium_gaps: analysisResult.mediumGaps,
         low_gaps: analysisResult.lowGaps,
         gaps: analysisResult.gaps,
-        caution_items: cautionResult.cautions,
+        caution_items: filteredCautions,
         document_type: detectedDocType,
       });
 

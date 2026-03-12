@@ -140,6 +140,9 @@ export interface CompletedEvaluation {
   low_gaps: number;
   cautions_accepted?: number;
   cautions_rejected?: number;
+  cautions_critical?: number;
+  cautions_medium?: number;
+  cautions_low?: number;
   document_type?: string;
   completed_at: string;
   created_at: string;

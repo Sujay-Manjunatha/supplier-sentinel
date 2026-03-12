@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { completedEvaluationStore, type CompletedEvaluation } from "@/lib/localStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2, Calendar, AlertCircle, AlertTriangle, Eye, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Trash2, Calendar, AlertCircle, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -88,24 +88,24 @@ export default function MyProcesses() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-destructive" />
+                <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
                 <div>
                   <p className="text-2xl font-bold">{evaluation.critical_gaps}</p>
                   <p className="text-xs text-muted-foreground">{t('myProcesses.criticalGaps')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
                 <div>
                   <p className="text-2xl font-bold">{evaluation.medium_gaps}</p>
                   <p className="text-xs text-muted-foreground">{t('myProcesses.mediumGaps')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-blue-500" />
+                <AlertCircle className="h-4 w-4 text-blue-500 shrink-0" />
                 <div>
                   <p className="text-2xl font-bold">{evaluation.low_gaps}</p>
                   <p className="text-xs text-muted-foreground">{t('myProcesses.lowGaps')}</p>
@@ -114,16 +114,16 @@ export default function MyProcesses() {
             </div>
 
             {(evaluation.cautions_accepted !== undefined || evaluation.cautions_rejected !== undefined) && (
-              <div className="border-t pt-3 grid grid-cols-2 gap-3">
+              <div className="border-t pt-3 grid grid-cols-3 gap-3">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
                   <div>
                     <p className="text-2xl font-bold">{evaluation.cautions_accepted ?? 0}</p>
                     <p className="text-xs text-muted-foreground">Cautions Accepted</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4 text-amber-500" />
+                  <XCircle className="h-4 w-4 text-amber-500 shrink-0" />
                   <div>
                     <p className="text-2xl font-bold">{evaluation.cautions_rejected ?? 0}</p>
                     <p className="text-xs text-muted-foreground">Cautions Rejected</p>

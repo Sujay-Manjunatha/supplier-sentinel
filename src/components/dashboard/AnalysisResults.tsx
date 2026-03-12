@@ -77,7 +77,15 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
 
       setSortedGaps(sorted as Gap[]);
       setAnalysis({ ...data, gaps: sorted });
-      setCautionItems((data.caution_items as CautionItem[]) || []);
+      const allNlItems = negativeListStore.getAll(data.document_type);
+      const nlTitles = new Set(allNlItems.map(n => n.title.toLowerCase().trim()));
+      const rawCautions = (data.caution_items as CautionItem[]) || [];
+      const filteredCautions = rawCautions.filter(item => {
+        const suggestedTitle = (item.suggestedTitle || '').toLowerCase().trim();
+        const topic = (item.topic || '').toLowerCase().trim();
+        return !nlTitles.has(suggestedTitle) && !nlTitles.has(topic);
+      });
+      setCautionItems(filteredCautions);
       setPhase("initial");
       setCurrentIndex(0);
       setDecisions({});
@@ -161,6 +169,13 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
 
   const handleAddCautionToNL = (item: CautionItem) => {
     const docType = analysis?.document_type || 'supplier_code';
+    const newTitle = (item.suggestedTitle || item.topic).toLowerCase().trim();
+    const existing = negativeListStore.getAll(docType);
+    const isDuplicate = existing.some(n => n.title.toLowerCase().trim() === newTitle);
+    if (isDuplicate) {
+      toast.error(`"${item.topic}" is already in your negative list`);
+      return;
+    }
     negativeListStore.insert([{
       user_id: 'local',
       document_type: docType,
