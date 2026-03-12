@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Shield } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import DataFoundation from "@/components/dashboard/DataFoundation";
@@ -9,6 +8,7 @@ import ComparisonUpload from "@/components/dashboard/ComparisonUpload";
 import AnalysisResults from "@/components/dashboard/AnalysisResults";
 import MyProcesses from "@/components/dashboard/MyProcesses";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { TurnusIcon } from "@/components/TurnusIcon";
 import { LOCAL_USER_ID } from "@/lib/localStore";
 
 const Dashboard = () => {
@@ -33,7 +33,7 @@ const Dashboard = () => {
           <header className="border-b bg-card/50 backdrop-blur-sm">
             <div className="container mx-auto px-6 py-3 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Shield className="h-8 w-8 text-primary" />
+                <TurnusIcon className="h-8 w-8" />
                 <h1 className="text-2xl font-bold text-foreground">{t('dashboard.title')}</h1>
               </div>
               <div className="flex gap-2">

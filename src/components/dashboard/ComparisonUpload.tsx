@@ -119,15 +119,17 @@ const ComparisonUpload = ({ userId, baselineId, onAnalysisComplete }: Comparison
         file_data_url: fileDataUrl,
       });
 
-      // Step 4: Call Gemini for AI analysis (sequential to avoid rate limits)
-      const analysisResult = await analyzeDocuments({
-        documentContent: content,
-        negativeListItems,
-        documentType: detectedDocType,
-        ownCodeOfConduct: cocContent,
-        auxiliaryDocuments: auxiliaryContents,
-      });
-      const cautionResult = await scanForCautions(content, detectedDocType);
+      // Step 4: Run gap analysis and caution scan in parallel
+      const [analysisResult, cautionResult] = await Promise.all([
+        analyzeDocuments({
+          documentContent: content,
+          negativeListItems,
+          documentType: detectedDocType,
+          ownCodeOfConduct: cocContent,
+          auxiliaryDocuments: auxiliaryContents,
+        }),
+        scanForCautions(content, detectedDocType),
+      ]);
 
       // Step 5: Save analysis results
       const analysis = gapAnalysisStore.insert({

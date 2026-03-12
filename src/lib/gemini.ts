@@ -1,10 +1,16 @@
 /**
- * Client-side Gemini API wrapper.
- * Calls Google's OpenAI-compatible endpoint directly from the browser,
- * replacing the old Supabase edge functions.
+ * Gemini API wrapper.
+ * Routes calls through the turnus-main-app backend proxy (VITE_GEMINI_PROXY_URL)
+ * so the API key stays server-side and quota is shared with the turnus account.
+ * Falls back to direct browser calls if the proxy URL is not configured.
  */
 
-const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
+// Proxy: turnus backend — set VITE_GEMINI_PROXY_URL=http://localhost:8000/api/v1/gemini/generate
+const GEMINI_PROXY_URL = import.meta.env.VITE_GEMINI_PROXY_URL as string | undefined;
+
+// Direct fallback — only used when proxy is not configured
+// gemini-2.5-flash-lite: 1500 RPD free tier (same model turnus uses for Excel)
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash-lite';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 function getApiKey(): string {
@@ -29,7 +35,7 @@ function parseJSON(raw: string): unknown {
   }
 }
 
-/** Low-level call to the native Gemini generateContent API. */
+/** Route through turnus proxy or fall back to direct Gemini call. */
 async function chatCompletion(
   messages: { role: string; content: string }[],
   opts: {
@@ -38,7 +44,53 @@ async function chatCompletion(
     maxTokens?: number;
   } = {},
 ): Promise<string> {
-  // Gemini uses 'user' / 'model' roles; map 'assistant' → 'model', 'system' → first user turn
+  if (GEMINI_PROXY_URL) {
+    return chatCompletionViaProxy(messages, opts);
+  }
+  return chatCompletionDirect(messages, opts);
+}
+
+/** Call via turnus-main-app Gemini proxy (server-side key, higher quota). */
+async function chatCompletionViaProxy(
+  messages: { role: string; content: string }[],
+  opts: { json?: boolean; temperature?: number; maxTokens?: number } = {},
+): Promise<string> {
+  let delay = 5000;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(GEMINI_PROXY_URL!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages,
+        json_mode: opts.json ?? false,
+        temperature: opts.temperature ?? null,
+      }),
+    });
+
+    if (res.status === 429) {
+      if (attempt === 3) throw new Error('The API is currently busy. Please wait a minute and try again.');
+      console.warn(`Proxy rate limited, retrying in ${delay / 1000}s…`);
+      await sleep(delay);
+      delay *= 2;
+      continue;
+    }
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Gemini proxy error ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+    return data.text as string;
+  }
+  throw new Error('Max retries exceeded');
+}
+
+/** Direct browser → Gemini API call (fallback when proxy not configured). */
+async function chatCompletionDirect(
+  messages: { role: string; content: string }[],
+  opts: { json?: boolean; temperature?: number; maxTokens?: number } = {},
+): Promise<string> {
   const systemMsg = messages.find((m) => m.role === 'system');
   const nonSystem = messages.filter((m) => m.role !== 'system');
 
@@ -61,7 +113,6 @@ async function chatCompletion(
 
   const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent?key=${getApiKey()}`;
 
-  // Retry with exponential backoff on 429 rate-limit responses
   let delay = 5000;
   for (let attempt = 0; attempt < 4; attempt++) {
     const res = await fetch(url, {
@@ -71,7 +122,6 @@ async function chatCompletion(
     });
 
     if (res.status === 429) {
-      // Parse the body to distinguish quota exhaustion from transient rate limiting
       let errBody: any = {};
       try { errBody = await res.clone().json(); } catch { /* ignore */ }
       const errMsg: string = errBody?.error?.message || '';
@@ -420,11 +470,10 @@ export async function analyzeDocuments(params: {
     batches.push(negativeListItems.slice(i, i + BATCH_SIZE));
   }
 
-  const allResults: unknown[] = [];
-  for (const batch of batches) {
-    const batchResults = await analyzeDocumentsBatch({ ...rest, negativeListItems: batch });
-    allResults.push(...batchResults);
-  }
+  const batchResults = await Promise.all(
+    batches.map(batch => analyzeDocumentsBatch({ ...rest, negativeListItems: batch }))
+  );
+  const allResults: unknown[] = batchResults.flat();
 
   // Convert findings to gap format
   const gaps: AnalysisGap[] = [];
@@ -595,33 +644,46 @@ interface RejectedGap {
 export async function generateEmail(
   rejectedGaps: RejectedGap[],
 ): Promise<{ emailTemplate: string }> {
-  const systemPrompt = `You are a professional business communication expert.
+  const systemPrompt = `You are a professional business communication expert writing on behalf of a supplier.
 
 TASK:
-Write a SHORT, DIRECT email in English to a supplier.
+Write a SHORT, DIRECT email in English to a customer explaining which points in their document we cannot accept.
 
 STRUCTURE (EXACTLY AS FOLLOWS):
-1. "Dear Supplier,"
+1. "Dear [Customer],"
 2. One line: "We are unable to accept the following points in your document:"
-3. Bullet list of rejected points. For each point: the section and text. If a comment is provided, add it as an indented line below the bullet.
+3. Bullet list of rejected points.
 4. "Thank you for your understanding."
 5. "Kind regards,"
 6. "[Your Name]"
 
-IMPORTANT:
-- NO long explanations
-- NO justifications
-- ONLY the list of points (with optional comments below each)
-- Direct and factual`;
+HOW TO HANDLE EACH BULLET POINT:
+- Start with: "• [Section reference]: [brief description of the clause]"
+- If a <reason> tag is present: add ONE professional business sentence on the next line explaining our position. This sentence must be written in formal, professional language — completely rewritten from the raw note. NEVER copy the raw note text.
+
+EXAMPLE INPUT:
+• §4.2 Audit Rights: Customer may perform unannounced audits at any time without restriction.
+  <reason>we do not accept audits</reason>
+
+EXAMPLE OUTPUT:
+• §4.2 Audit Rights: Customer may perform unannounced audits at any time without restriction.
+  We are unable to accept unrestricted audit rights, as this would place a disproportionate operational burden on our organisation.
+
+RULES:
+- The <reason> tag is a private internal note — NEVER include it or its raw text in the output
+- Always rewrite into a formal, third-person or first-person-plural business statement
+- Keep each bullet and its sentence concise (max 2 lines per point)`;
 
   const rejectedGapsText = rejectedGaps
     .map((gap) => {
-      const line = `- ${gap.section}: ${gap.customerText}`;
-      return gap.externalComment ? `${line}\n  → ${gap.externalComment}` : line;
+      const line = `• ${gap.section}: ${gap.customerText}`;
+      return gap.externalComment
+        ? `${line}\n  <reason>${gap.externalComment}</reason>`
+        : line;
     })
-    .join('\n');
+    .join('\n\n');
 
-  const userPrompt = `Write a SHORT email for the following rejected points:\n\n${rejectedGapsText}\n\nFollow the structure EXACTLY. NO long explanations!`;
+  const userPrompt = `Generate the email for the following rejected points:\n\n${rejectedGapsText}`;
 
   const raw = await chatCompletion([
     { role: 'system', content: systemPrompt },

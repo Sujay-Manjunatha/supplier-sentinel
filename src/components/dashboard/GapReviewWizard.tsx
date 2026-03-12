@@ -62,13 +62,19 @@ const GapReviewWizard = ({
   onComplete,
 }: GapReviewWizardProps) => {
   const { t } = useTranslation();
+  const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+
   const currentGap = gaps[currentIndex];
   const isLastGap = currentIndex === gaps.length - 1;
   const currentDecision = decisions[currentIndex];
-  const allDecisionsMade = gaps.every((_, index) => decisions[index] !== undefined);
+  const allDecisionsMade = gaps.length > 0 && gaps.every((_, index) => decisions[index] !== undefined);
   const hasUnansweredQuestions = !allDecisionsMade;
-  const progress = ((currentIndex + 1) / gaps.length) * 100;
-  const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+  const progress = gaps.length > 0 ? ((currentIndex + 1) / gaps.length) * 100 : 0;
+
+  // Guard: if gaps is empty or index is out of bounds, don't crash
+  if (!currentGap || gaps.length === 0) {
+    return null;
+  }
 
   const handleAccept = () => {
     onAccept(currentIndex);

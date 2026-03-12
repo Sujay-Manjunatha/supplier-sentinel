@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { gapAnalysisStore, comparisonDocStore, negativeListStore } from "@/lib/localStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import GapReviewWizard from "./GapReviewWizard";
 import { ReviewSummary } from "./ReviewSummary";
 import { RejectedPointsCommentReview } from "./RejectedPointsCommentReview";
 import type { CommentsMap } from "./RejectedPointsCommentReview";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, CheckCircle2, Eye, Plus, ChevronRight, ChevronLeft, FileText, AlertCircle, RefreshCw, Check, X } from "lucide-react";
+import PdfHighlightViewer from "@/components/PdfHighlightViewer";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { CautionItem } from "@/lib/gemini";
@@ -50,7 +50,14 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
   const [documentContent, setDocumentContent] = useState<string>('');
   const [fileDataUrl, setFileDataUrl] = useState<string | null>(null);
   const [phaseError, setPhaseError] = useState<string | null>(null);
+  const [cautionIndex, setCautionIndex] = useState(0);
   const { t } = useTranslation();
+
+  const highlightText = useMemo(() => {
+    if (phase === 'review') return sortedGaps[currentIndex]?.customerText ?? '';
+    if (phase === 'cautions') return cautionItems[cautionIndex]?.excerpt ?? '';
+    return '';
+  }, [phase, currentIndex, cautionIndex, sortedGaps, cautionItems]);
 
   useEffect(() => {
     if (analysisId) fetchAnalysis();
@@ -211,6 +218,7 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
         comparisonDocumentId={comparisonDocumentId || analysis.comparison_document_id}
         onRestart={handleRestart}
         rejectedCautionItems={rejectedCautionItems}
+        allCautionItems={cautionItems}
         comments={pointComments}
       />
     );
@@ -227,17 +235,9 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
             <span className="text-sm font-medium text-muted-foreground">Document</span>
           </div>
           {fileDataUrl ? (
-            <iframe
-              src={fileDataUrl}
-              className="flex-1 w-full border-0"
-              title="Document Preview"
-            />
+            <PdfHighlightViewer dataUrl={fileDataUrl} highlight={highlightText} />
           ) : (
-            <ScrollArea className="flex-1 min-h-0">
-              <pre className="text-xs whitespace-pre-wrap p-4 font-mono leading-relaxed text-foreground/80">
-                {documentContent || 'Document content not available.'}
-              </pre>
-            </ScrollArea>
+            <HighlightedTextView content={documentContent} highlight={highlightText} />
           )}
         </Card>
       </div>
@@ -301,6 +301,7 @@ const AnalysisResults = ({ analysisId, comparisonDocumentId }: AnalysisResultsPr
             cautionItems={cautionItems}
             gaps={sortedGaps}
             onComplete={handleCautionsComplete}
+            onIndexChange={setCautionIndex}
             t={t}
           />
         )}
@@ -389,14 +390,21 @@ const InitialPanel = ({
 const CautionsPanel = ({
   cautionItems: rawCautionItems,
   onComplete,
+  onIndexChange,
 }: {
   cautionItems: CautionItem[];
   gaps: Gap[];
   onComplete: (decisions: Record<number, CautionDecision>) => void;
+  onIndexChange?: (index: number) => void;
   t: (key: string) => string;
 }) => {
   const cautionItems = Array.isArray(rawCautionItems) ? rawCautionItems : [];
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const goToIndex = (idx: number) => {
+    setCurrentIndex(idx);
+    onIndexChange?.(idx);
+  };
   const [decisions, setDecisions] = useState<Record<number, CautionDecision>>({});
 
   if (cautionItems.length === 0) {
@@ -504,7 +512,7 @@ const CautionsPanel = ({
           {/* Navigation */}
           <div className="flex items-center justify-between pt-2">
             <Button
-              onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+              onClick={() => goToIndex(Math.max(0, currentIndex - 1))}
               variant="outline"
               disabled={currentIndex === 0}
               size="lg"
@@ -515,7 +523,7 @@ const CautionsPanel = ({
 
             {!isLast ? (
               <Button
-                onClick={() => setCurrentIndex(i => i + 1)}
+                onClick={() => goToIndex(currentIndex + 1)}
                 variant={currentDecision ? "default" : "outline"}
                 disabled={!currentDecision}
                 size="lg"
@@ -536,6 +544,64 @@ const CautionsPanel = ({
           </div>
         </div>
       </Card>
+    </div>
+  );
+};
+
+// ── HighlightedTextView ───────────────────────────────────────────────────────
+
+const HighlightedTextView = ({ content, highlight }: { content: string; highlight: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const markRef = useRef<HTMLElement>(null);
+
+  // Find match position — try progressively shorter prefixes
+  const match = useMemo(() => {
+    if (!highlight || !content) return null;
+    const attempts = [highlight, highlight.slice(0, 120), highlight.slice(0, 60)];
+    for (const attempt of attempts) {
+      if (attempt.length < 15) break;
+      const idx = content.toLowerCase().indexOf(attempt.toLowerCase());
+      if (idx !== -1) return { idx, len: attempt.length };
+    }
+    return null;
+  }, [content, highlight]);
+
+  useEffect(() => {
+    if (markRef.current && containerRef.current) {
+      const container = containerRef.current;
+      const mark = markRef.current;
+      const markTop = mark.offsetTop;
+      const containerHeight = container.clientHeight;
+      container.scrollTop = Math.max(0, markTop - containerHeight / 3);
+    }
+  }, [match]);
+
+  if (!match) {
+    return (
+      <div ref={containerRef} className="flex-1 overflow-y-auto min-h-0">
+        <pre className="text-xs whitespace-pre-wrap p-4 font-mono leading-relaxed text-foreground/80">
+          {content || 'Document content not available.'}
+        </pre>
+      </div>
+    );
+  }
+
+  const before = content.slice(0, match.idx);
+  const matched = content.slice(match.idx, match.idx + match.len);
+  const after = content.slice(match.idx + match.len);
+
+  return (
+    <div ref={containerRef} className="flex-1 overflow-y-auto min-h-0">
+      <pre className="text-xs whitespace-pre-wrap p-4 font-mono leading-relaxed text-foreground/80">
+        {before}
+        <mark
+          ref={markRef as React.RefObject<HTMLElement>}
+          className="bg-yellow-300 dark:bg-yellow-500/60 text-foreground rounded-sm px-0.5 not-italic"
+        >
+          {matched}
+        </mark>
+        {after}
+      </pre>
     </div>
   );
 };

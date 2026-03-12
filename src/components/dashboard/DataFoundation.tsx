@@ -129,6 +129,7 @@ const DataFoundation = () => {
         title: point.title,
         description: point.description,
         category: point.category,
+        source: 'ai_generated' as const,
       }));
 
       negativeListStore.insert(pointsToInsert);
