@@ -99,7 +99,7 @@
     "loginError": "Login failed"
   },
   "dashboard": {
-    "title": "Gap Analysis Dashboard",
+    "title": "Review Assistant",
     "dataFoundation": "Data Foundation",
     "myProcesses": "My Processes",
     "newProcess": "New Process",

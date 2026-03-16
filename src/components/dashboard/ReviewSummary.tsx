@@ -136,6 +136,9 @@ export const ReviewSummary = ({ gaps, decisions, analysisId, comparisonDocumentI
         cautions_critical: rejectedCautionItems.filter(c => c.severity === 'KRITISCH').length,
         cautions_medium: rejectedCautionItems.filter(c => c.severity === 'MITTEL').length,
         cautions_low: rejectedCautionItems.filter(c => c.severity === 'GERING').length,
+        all_caution_items: allCautionItems,
+        rejected_caution_items: rejectedCautionItems,
+        comments,
       });
 
       try { draftEmailStore.clear(); } catch { /* ignore */ }

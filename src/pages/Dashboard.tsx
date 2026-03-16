@@ -7,6 +7,8 @@ import DataFoundation from "@/components/dashboard/DataFoundation";
 import ComparisonUpload from "@/components/dashboard/ComparisonUpload";
 import AnalysisResults from "@/components/dashboard/AnalysisResults";
 import MyProcesses from "@/components/dashboard/MyProcesses";
+import EvaluationDetail from "@/components/dashboard/EvaluationDetail";
+import { type CompletedEvaluation } from "@/lib/localStore";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { TurnusIcon } from "@/components/TurnusIcon";
 import { LOCAL_USER_ID } from "@/lib/localStore";
@@ -15,6 +17,7 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState("data-foundation");
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [comparisonDocumentId, setComparisonDocumentId] = useState<string | null>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<CompletedEvaluation | null>(null);
   const { t } = useTranslation();
 
   const handleAnalysisComplete = (id: string, compDocId: string) => {
@@ -48,7 +51,13 @@ const Dashboard = () => {
               <DataFoundation />
             )}
 
-            {activeSection === "processes" && <MyProcesses />}
+            {activeSection === "processes" && (
+              <MyProcesses onViewDetail={(ev) => { setSelectedEvaluation(ev); setActiveSection("evaluation-detail"); }} />
+            )}
+
+            {activeSection === "evaluation-detail" && selectedEvaluation && (
+              <EvaluationDetail evaluation={selectedEvaluation} onBack={() => setActiveSection("processes")} />
+            )}
 
             {activeSection === "new-process" && (
               <ComparisonUpload

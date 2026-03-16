@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { completedEvaluationStore, type CompletedEvaluation } from "@/lib/localStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2, Calendar, AlertCircle, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Trash2, Calendar, AlertCircle, AlertTriangle, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -11,7 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 
-export default function MyProcesses() {
+interface MyProcessesProps {
+  onViewDetail?: (evaluation: CompletedEvaluation) => void;
+}
+
+export default function MyProcesses({ onViewDetail }: MyProcessesProps) {
   const [evaluations, setEvaluations] = useState<CompletedEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -70,11 +74,18 @@ export default function MyProcesses() {
       </div>
 
       {evaluations.map((evaluation) => (
-        <Card key={evaluation.id} className="hover:bg-muted/50 transition-colors">
+        <Card
+          key={evaluation.id}
+          className="hover:bg-muted/50 transition-colors cursor-pointer"
+          onClick={() => onViewDetail?.(evaluation)}
+        >
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <CardTitle className="text-lg">{evaluation.title}</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {evaluation.title}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </CardTitle>
                 <CardDescription className="flex items-center gap-2 mt-1">
                   <Calendar className="h-3 w-3" />
                   {new Date(evaluation.completed_at).toLocaleDateString(i18n.language === 'de' ? 'de-DE' : 'en-US', {
@@ -83,7 +94,7 @@ export default function MyProcesses() {
                   })}
                 </CardDescription>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setDeleteId(evaluation.id)}>
+              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteId(evaluation.id); }}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -136,7 +147,7 @@ export default function MyProcesses() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { setSelectedEvaluation(evaluation); setShowEmailDialog(true); }}
+                onClick={(e) => { e.stopPropagation(); setSelectedEvaluation(evaluation); setShowEmailDialog(true); }}
                 disabled={!evaluation.email_template}
               >
                 <FileText className="h-4 w-4 mr-2" />

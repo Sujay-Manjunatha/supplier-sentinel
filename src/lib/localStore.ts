@@ -143,6 +143,9 @@ export interface CompletedEvaluation {
   cautions_critical?: number;
   cautions_medium?: number;
   cautions_low?: number;
+  all_caution_items?: any[];
+  rejected_caution_items?: any[];
+  comments?: Record<string, { internal?: string; external?: string }>;
   document_type?: string;
   completed_at: string;
   created_at: string;
